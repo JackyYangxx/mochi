@@ -1,6 +1,8 @@
 import { app, BrowserWindow } from 'electron';
 import { createMainWindow, getMainWindow } from './window';
 import { createTray } from './tray';
+import { initDatabase, closeDatabase } from '../database/connection';
+import { registerIpcHandlers } from './ipc';
 import log from 'electron-log';
 
 log.initialize();
@@ -8,6 +10,9 @@ log.initialize();
 let isQuitting = false;
 
 app.whenReady().then(() => {
+  initDatabase();
+  registerIpcHandlers();
+
   const win = createMainWindow();
   createTray();
 
@@ -21,6 +26,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  closeDatabase();
 });
 
 app.on('activate', () => {
