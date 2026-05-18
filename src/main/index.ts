@@ -1,18 +1,31 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { createMainWindow, getMainWindow } from './window';
+import { createTray } from './tray';
+import log from 'electron-log';
+
+log.initialize();
+
+let isQuitting = false;
 
 app.whenReady().then(() => {
-  createMainWindow();
+  const win = createMainWindow();
+  createTray();
+
+  win.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      win.hide();
+    }
+  });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createMainWindow();
+  const win = getMainWindow();
+  if (win) {
+    win.show();
   }
 });
