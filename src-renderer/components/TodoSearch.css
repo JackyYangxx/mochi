@@ -1,0 +1,42 @@
+.todo-search {
+  position: relative;
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+
+.todo-search-input {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  color: #1f2937;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.todo-search-input:focus {
+  border-color: #7c3aed;
+}
+
+.todo-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.todo-search-clear {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
