@@ -1,0 +1,30 @@
+.pet-view {
+  width: 128px;
+  height: 128px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.pet-image {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  image-rendering: auto;
+  pointer-events: none;
+}
+
+.pet-state-active {
+  transform: scale(1.05);
+}
+
+.pet-state-speaking {
+  animation: pet-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes pet-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
