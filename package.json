@@ -1,0 +1,45 @@
+{
+  "name": "desktop-todo-list",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && tsc -p tsconfig.node.json",
+    "start": "electron dist/main/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/ src-renderer/ tests/",
+    "format": "prettier --write src/ src-renderer/ tests/"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.1",
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "electron": "^28.3.3",
+    "electron-log": "^5.4.4",
+    "openai": "^4.104.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "uuid": "^9.0.1",
+    "zustand": "^4.5.7"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^14.3.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@types/uuid": "^9.0.8",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.1",
+    "jsdom": "^23.2.0",
+    "prettier": "^3.8.3",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vitest": "^1.6.1"
+  }
+}

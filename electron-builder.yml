@@ -1,0 +1,14 @@
+appId: com.desktop-todo-list.app
+productName: Desktop Todo
+directories:
+  output: release
+files:
+  - dist/**/*
+  - dist-renderer/**/*
+  - package.json
+mac:
+  target: dmg
+win:
+  target: nsis
+linux:
+  target: AppImage
