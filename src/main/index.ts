@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import { createMainWindow, getMainWindow } from './window';
+import { createMainWindow, getMainWindow, saveWindowPosition } from './window';
 import { createTray } from './tray';
 import { initDatabase, closeDatabase } from '../database/connection';
 import { registerIpcHandlers } from './ipc';
@@ -21,11 +21,19 @@ app.whenReady().then(() => {
   log.info(`Auto-launch: ${autoLaunchEnabled}`);
   registerGlobalShortcut(win);
 
+  // Register IPC handler for auto-launch setting
+  const { ipcMain } = require('electron');
+  ipcMain.handle('settings:setAutoLaunch', (_event: any, enabled: boolean) => {
+    app.setLoginItemSettings({ openAtLogin: enabled });
+    log.info(`Auto-launch set to: ${enabled}`);
+  });
+
   win.on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault();
       win.hide();
     }
+    saveWindowPosition(win);
   });
 });
 
