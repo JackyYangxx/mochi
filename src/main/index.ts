@@ -1,14 +1,19 @@
 import { app, BrowserWindow } from 'electron';
 import { createMainWindow, getMainWindow, saveWindowPosition } from './window';
 import { createTray } from './tray';
-import { initDatabase, closeDatabase } from '../database/connection';
+import { initDatabase, closeDatabase, getDb } from '../database/connection';
 import { registerIpcHandlers } from './ipc';
 import { registerGlobalShortcut, unregisterAllShortcuts } from './shortcut';
+import { ReminderService } from '../services/ReminderService';
+import { CLIExecutor } from '../services/CLIExecutor';
+import { LLMService } from '../services/LLMService';
+import { SettingsService } from '../services/SettingsService';
 import log from 'electron-log';
 
 log.initialize();
 
 let isQuitting = false;
+let reminderService: ReminderService | null = null;
 
 app.whenReady().then(() => {
   initDatabase();
@@ -20,6 +25,13 @@ app.whenReady().then(() => {
   const autoLaunchEnabled = app.getLoginItemSettings().openAtLogin;
   log.info(`Auto-launch: ${autoLaunchEnabled}`);
   registerGlobalShortcut(win);
+
+  // Initialize ReminderService
+  const settingsService = new SettingsService(getDb());
+  const llmService = new LLMService();
+  const cliExecutor = new CLIExecutor();
+  reminderService = new ReminderService(cliExecutor, llmService, settingsService);
+  reminderService.start();
 
   // Register IPC handler for auto-launch setting
   const { ipcMain } = require('electron');
@@ -39,6 +51,7 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   unregisterAllShortcuts();
+  reminderService?.stop();
 });
 
 app.on('before-quit', () => {
