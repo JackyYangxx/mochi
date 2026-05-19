@@ -7,7 +7,8 @@ describe('PetView', () => {
     render(<PetView petState="idle" images={{ idle: null, active: null, speaking: null }} />);
     const img = screen.getByRole('img');
     expect(img).toBeDefined();
-    expect(img.getAttribute('src')).toContain('default-pet');
+    // Default icon is an SVG data URL
+    expect(img.getAttribute('src')).toContain('data:image/svg+xml');
   });
 
   it('renders idle image when provided', () => {
