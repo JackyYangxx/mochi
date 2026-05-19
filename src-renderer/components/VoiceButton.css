@@ -1,0 +1,29 @@
+.voice-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.voice-button:hover {
+  background: rgba(124, 58, 237, 0.2);
+  transform: scale(1.05);
+}
+
+.voice-button.listening {
+  background: #7c3aed;
+  color: white;
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
