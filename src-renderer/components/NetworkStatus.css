@@ -1,0 +1,40 @@
+.network-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.network-status.online {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.network-status.offline {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.network-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.network-status.online .network-indicator {
+  background: #10b981;
+}
+
+.network-status.offline .network-indicator {
+  background: #ef4444;
+}
+
+.network-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
