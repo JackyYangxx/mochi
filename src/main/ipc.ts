@@ -2,6 +2,8 @@ import { ipcMain, app } from 'electron';
 import { getDb } from '../database/connection';
 import { TodoService } from '../services/TodoService';
 import { SettingsService } from '../services/SettingsService';
+import fs from 'fs';
+import path from 'path';
 
 let todoService: TodoService;
 let settingsService: SettingsService;
@@ -35,4 +37,25 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('app:getAutoLaunch', () => {
     return app.getLoginItemSettings().openAtLogin;
   });
+
+  // Pet image handlers
+  ipcMain.handle('pets:uploadImage', (_event, state: string, filePath: string) => {
+    const userDataPath = app.getPath('userData');
+    const imagesDir = path.join(userDataPath, 'pet-images');
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+    const ext = path.extname(filePath);
+    const destFileName = `pet-${state}${ext}`;
+    const destPath = path.join(imagesDir, destFileName);
+    fs.copyFileSync(filePath, destPath);
+    settingsService.set(`petImage_${state}`, destPath);
+    return destPath;
+  });
+
+  ipcMain.handle('pets:getImages', () => ({
+    idle: settingsService.get('petImage_idle'),
+    active: settingsService.get('petImage_active'),
+    speaking: settingsService.get('petImage_speaking'),
+  }));
 }
