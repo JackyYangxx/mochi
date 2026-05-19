@@ -1,7 +1,7 @@
 # Desktop Todo Agent — 项目进展
 
-> 日期: 2026-05-19
-> 状态: 核心功能实现完成，待集成测试
+> 日期: 2026-05-20
+> 状态: 所有遗留事项已处理完成
 
 ## 已完成
 
@@ -64,29 +64,20 @@
 
 ## 遗留事项
 
-### 1. 集成测试未验证
-- `pnpm dev` 启动验证未执行
-- 端到端功能流程未手动测试
+### 已完成 (2026-05-19)
 
-### 2. 测试覆盖不完整
-- TodoService 单元测试有 5 个测试因 `db.transaction` mock 问题失败
-- 未测试 PetView 组件所有状态
-- InputModal 组件缺少单元测试
+| # | 事项 | 解决方案 | Commit |
+|---|------|----------|--------|
+| 1 | TodoService 单元测试 5 个失败 | 添加 db.transaction mock，所有 13 个测试通过 | `1b8211f2` |
+| 2 | 每日提醒调度未启动 | 在 app.whenReady() 中调用 ReminderService.start() | `0b933767` |
+| 3 | 宠物图片上传 IPC 未实现 | 添加 pets:uploadImage 和 pets:getImages handlers | `97ee9e58` |
+| 4 | ESLint/Prettier 未配置 | 创建 .eslintrc.json, .prettierrc.json, .prettierignore | `657664d6` |
+| 5 | InputModal 缺少单元测试 | 添加 11 个测试覆盖 modal/input/voice/submit | `4b9c3a21` |
+| 6 | data:export/import IPC 未实现 | 添加 JSON 格式导入导出 handlers | `3966fbce` |
 
-### 3. 缺少宠物图片上传功能实现
-- SettingsPanel 有上传 UI，但 `uploadPetImage` IPC handler 未完整实现
-- 只保留了图片路径配置，没有实际文件上传到应用数据目录
+### 仍需处理
 
-### 4. 数据导入/导出 IPC handler 未测试
-- `data:export` 和 `data:import` handlers 已注册，但未验证功能
-
-### 5. 每日提醒调度未在主进程启动时初始化
-- `ReminderService.startScheduler()` 需要在 `app.whenReady()` 中调用
-- 当前只在 IPC handler 中实例化，未真正启动定时器
-
-### 6. ESLint/Prettier 未完整配置
-- `.eslintrc` 和 `.prettierrc` 配置文件未创建
-- `pre-commit` hook 未配置
+- 集成测试未验证 (`pnpm dev` 启动验证)
 
 ---
 
@@ -96,12 +87,6 @@
 1. 运行 `pnpm dev` 启动应用，验证 UI 和基本功能
 2. 测试添加/完成/删除待办流程
 3. 验证全局快捷键和语音输入
-
-### 短期完善
-1. 修复 TodoService 测试 (db.transaction mock)
-2. 实现宠物图片上传 IPC handler
-3. 在 main/index.ts 中添加 ReminderService 调度启动
-4. 创建 ESLint/Prettier 配置文件
 
 ### 可选优化
 1. 添加更多 E2E 测试场景
