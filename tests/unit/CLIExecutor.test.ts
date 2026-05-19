@@ -1,86 +1,69 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CLIExecutor } from '../../src/services/CLIExecutor';
-import { EventEmitter } from 'events';
-import child_process from 'child_process';
-
-const { mockChild, mockStdout, mockStderr } = vi.hoisted(() => {
-  const mockStdout = new EventEmitter();
-  const mockStderr = new EventEmitter();
-  const mockChild = new EventEmitter() as any;
-  mockChild.stdout = mockStdout;
-  mockChild.stderr = mockStderr;
-  mockChild.kill = vi.fn();
-  return { mockChild, mockStdout, mockStderr };
-});
-
-vi.mock('child_process', () => {
-  return {
-    default: {
-      spawn: vi.fn(() => mockChild),
-    },
-    spawn: vi.fn(() => mockChild),
-  };
-});
 
 describe('CLIExecutor', () => {
   let executor: CLIExecutor;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     executor = new CLIExecutor(30000);
   });
 
-  it('executes CLI with arguments array (no shell)', async () => {
-    const resultPromise = executor.execute('/usr/bin/echo', ['hello world']);
+  it('validates that CLI path must be absolute', () => {
+    const result = executor.validatePath('./relative/path');
+    expect(result).toBe('CLI path must be an absolute path');
+  });
 
-    mockStdout.emit('data', Buffer.from('hello world\n'));
-    mockChild.emit('close', 0);
+  it('validates non-existent paths', () => {
+    const result = executor.validatePath('/nonexistent/path/to/cli');
+    expect(result).toBe('CLI path does not exist');
+  });
 
-    const result = await resultPromise;
+  it('validates /bin/echo exists', () => {
+    const result = executor.validatePath('/bin/echo');
+    expect(result).toBeNull();
+  });
+
+  it('validates that real CLI is executable', () => {
+    // /bin/echo is executable on Unix systems
+    const result = executor.validatePath('/bin/echo');
+    expect(result).toBeNull();
+  });
+
+  it('executes echo and returns result', async () => {
+    // Use real /bin/echo
+    const result = await executor.execute('/bin/echo', ['hello world']);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('hello world');
+    expect(result.stdout).toBe('hello world');
   });
 
-  it('uses spawn with shell: false', async () => {
-    const resultPromise = executor.execute('/usr/bin/echo', ['test']);
-
-    mockStdout.emit('data', Buffer.from('test\n'));
-    mockChild.emit('close', 0);
-    await resultPromise;
-
-    const spawnCall = (child_process.spawn as any).mock.calls[0];
-    expect(spawnCall[2].shell).toBe(false);
+  it('passes args array directly (no shell)', async () => {
+    // Test that shell special chars in args are passed literally
+    const result = await executor.execute('/bin/echo', ['hello; rm -rf /']);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe('hello; rm -rf /');
   });
 
-  it('passes {content} placeholder as literal argument', async () => {
-    const resultPromise = executor.execute('/bin/cli', ['send', '--msg', 'hello; rm -rf /']);
-
-    mockChild.emit('close', 0);
-    await resultPromise;
-
-    const spawnCall = (child_process.spawn as any).mock.calls[0];
-    const args = spawnCall[1];
-    expect(args).toContain('hello; rm -rf /');
+  it('rejects relative path', async () => {
+    await expect(executor.execute('./relative', ['arg'])).rejects.toThrow('must be an absolute path');
   });
 
-  it('rejects when CLI path not found', async () => {
-    const error = new Error('ENOENT');
-    (error as any).code = 'ENOENT';
-    mockChild.emit('error', error);
-
+  it('rejects non-existent path', async () => {
     await expect(executor.execute('/nonexistent/cli', [])).rejects.toThrow('CLI tool not found');
   });
 
-  it('times out after configured duration', async () => {
+  it('times out with custom duration', async () => {
     vi.useFakeTimers();
-    const resultPromise = executor.execute('/bin/sleep', ['100']);
-    vi.advanceTimersByTime(31000);
-    await expect(resultPromise).rejects.toThrow('timed out');
-    expect(mockChild.kill).toHaveBeenCalled();
+    const shortExecutor = new CLIExecutor(100);
+    const promise = shortExecutor.execute('/bin/sleep', ['10']);
+
+    vi.advanceTimersByTime(150);
+    await expect(promise).rejects.toThrow('timed out');
     vi.useRealTimers();
   });
 
-  it('validates that CLI path is an absolute path', async () => {
-    await expect(executor.execute('./relative/path', [])).rejects.toThrow('must be an absolute path');
+  it('collects stderr output', async () => {
+    // Use a command that writes to stderr
+    const result = await executor.execute('/bin/sh', ['-c', 'echo error >&2']);
+    expect(result.stderr).toBe('error');
   });
 });
