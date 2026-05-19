@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipcMain, app } from 'electron';
 import { getDb } from '../database/connection';
 import { TodoService } from '../services/TodoService';
 import { SettingsService } from '../services/SettingsService';
@@ -23,4 +23,16 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('settings:get', (_event, key: string) => settingsService.get(key));
   ipcMain.handle('settings:set', (_event, key: string, value: string) => settingsService.set(key, value));
   ipcMain.handle('settings:delete', (_event, key: string) => settingsService.delete(key));
+
+  // App handlers
+  ipcMain.handle('app:setAutoLaunch', (_event, enabled: boolean) => {
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      openAsHidden: true,
+    });
+  });
+
+  ipcMain.handle('app:getAutoLaunch', () => {
+    return app.getLoginItemSettings().openAtLogin;
+  });
 }

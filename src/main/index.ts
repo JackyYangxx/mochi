@@ -16,6 +16,9 @@ app.whenReady().then(() => {
 
   const win = createMainWindow();
   createTray();
+  // Set auto-launch from saved setting
+  const autoLaunchEnabled = app.getLoginItemSettings().openAtLogin;
+  log.info(`Auto-launch: ${autoLaunchEnabled}`);
   registerGlobalShortcut(win);
 
   win.on('close', (event) => {
