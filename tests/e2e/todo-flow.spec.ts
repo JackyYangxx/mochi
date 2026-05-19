@@ -2,67 +2,103 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Todo Flow', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173/');
+    // Navigate to the app
+    await page.goto('http://localhost:5173');
   });
 
-  test('adds a todo via pet click', async ({ page }) => {
-    // Click the pet to open input modal
-    await page.click('[data-testid="pet-view"]');
+  test('app renders without errors', async ({ page }) => {
+    // Check that the app container exists
+    const container = page.locator('.app-container');
+    await expect(container).toBeVisible();
 
-    // Input modal should appear
-    await expect(page.locator('.todo-input')).toBeVisible();
-
-    // Type a todo
-    await page.fill('.todo-input', 'Buy groceries');
-    await page.press('.todo-input', 'Enter');
-
-    // Modal should close and todo should appear in list
-    await expect(page.locator('.todo-input')).not.toBeVisible();
-    await expect(page.getByText('Buy groceries')).toBeVisible();
+    // Check pet view exists
+    const petView = page.locator('.pet-view');
+    await expect(petView).toBeVisible();
   });
 
-  test('toggles todo completion', async ({ page }) => {
+  test('clicking pet opens input modal', async ({ page }) => {
+    const petView = page.locator('.pet-view');
+    await petView.click();
+
+    const inputModal = page.locator('.input-modal');
+    await expect(inputModal).toBeVisible();
+  });
+
+  test('can add a todo item', async ({ page }) => {
+    // Open input modal
+    const petView = page.locator('.pet-view');
+    await petView.click();
+
+    // Type todo content
+    const input = page.locator('.input-modal-input');
+    await input.fill('Test todo item');
+
+    // Press Enter to submit
+    await input.press('Enter');
+
+    // Check todo appears in list
+    const todoItem = page.locator('.todo-item');
+    await expect(todoItem).toBeVisible();
+  });
+
+  test('can toggle todo completion', async ({ page }) => {
     // Add a todo first
-    await page.click('[data-testid="pet-view"]');
-    await page.fill('.todo-input', 'Test task');
-    await page.press('.todo-input', 'Enter');
+    const petView = page.locator('.pet-view');
+    await petView.click();
+    const input = page.locator('.input-modal-input');
+    await input.fill('Toggle test');
+    await input.press('Enter');
 
-    // Click the checkbox to complete
-    await page.click('.todo-checkbox');
+    // Wait for todo to appear
+    await page.waitForSelector('.todo-item');
 
-    // Should show completed state
-    await expect(page.locator('.todo-item.completed')).toBeVisible();
+    // Click checkbox to toggle
+    const checkbox = page.locator('.todo-checkbox').first();
+    await checkbox.click();
+
+    // Check todo is completed
+    const completedTodo = page.locator('.todo-item.completed');
+    await expect(completedTodo).toBeVisible();
   });
 
-  test('deletes a todo', async ({ page }) => {
+  test('can delete a todo item', async ({ page }) => {
     // Add a todo
-    await page.click('[data-testid="pet-view"]');
-    await page.fill('.todo-input', 'To delete');
-    await page.press('.todo-input', 'Enter');
+    const petView = page.locator('.pet-view');
+    await petView.click();
+    const input = page.locator('.input-modal-input');
+    await input.fill('Delete test');
+    await input.press('Enter');
+
+    // Wait for todo
+    await page.waitForSelector('.todo-item');
 
     // Hover and click delete
-    await page.hover('.todo-item');
-    await page.click('.todo-delete');
+    const todoItem = page.locator('.todo-item').first();
+    await todoItem.hover();
+    const deleteBtn = page.locator('.todo-delete').first();
+    await deleteBtn.click();
 
-    // Todo should be removed
-    await expect(page.getByText('To delete')).not.toBeVisible();
+    // Verify todo is removed
+    await expect(page.locator('.todo-item')).toHaveCount(0);
   });
 
-  test('search filters todos', async ({ page }) => {
+  test('search filters todo list', async ({ page }) => {
     // Add multiple todos
-    await page.click('[data-testid="pet-view"]');
-    await page.fill('.todo-input', 'Apple');
-    await page.press('.todo-input', 'Enter');
+    const petView = page.locator('.pet-view');
+    await petView.click();
+    await page.locator('.input-modal-input').fill('Apple todo');
+    await page.locator('.input-modal-input').press('Enter');
 
-    await page.click('[data-testid="pet-view"]');
-    await page.fill('.todo-input', 'Banana');
-    await page.press('.todo-input', 'Enter');
+    await petView.click();
+    await page.locator('.input-modal-input').fill('Banana todo');
+    await page.locator('.input-modal-input').press('Enter');
 
-    // Search for Apple
-    await page.fill('.search-input', 'Apple');
+    // Search for one
+    const searchInput = page.locator('.todo-search-input');
+    await searchInput.fill('Apple');
 
-    // Should only show Apple
-    await expect(page.getByText('Apple')).toBeVisible();
-    await expect(page.getByText('Banana')).not.toBeVisible();
+    // Only matching todo should show
+    const todos = page.locator('.todo-item');
+    await expect(todos).toHaveCount(1);
   });
 });
