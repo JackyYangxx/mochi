@@ -58,4 +58,26 @@ export function registerIpcHandlers(): void {
     active: settingsService.get('petImage_active'),
     speaking: settingsService.get('petImage_speaking'),
   }));
+
+  // Data import/export handlers
+  ipcMain.handle('data:export', (_event, filePath: string) => {
+    const todos = todoService.getAll();
+    const data = { version: 1, exportedAt: new Date().toISOString(), todos };
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    return { success: true, count: todos.length };
+  });
+
+  ipcMain.handle('data:import', (_event, filePath: string) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const data = JSON.parse(content);
+    if (!data.todos || !Array.isArray(data.todos)) {
+      throw new Error('Invalid import file format');
+    }
+    const added: string[] = [];
+    for (const todo of data.todos) {
+      const result = todoService.add({ content: todo.content });
+      added.push(result.id);
+    }
+    return { success: true, count: added.length };
+  });
 }
