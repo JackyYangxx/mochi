@@ -3,6 +3,7 @@ import { createMainWindow, getMainWindow } from './window';
 import { createTray } from './tray';
 import { initDatabase, closeDatabase } from '../database/connection';
 import { registerIpcHandlers } from './ipc';
+import { registerGlobalShortcut, unregisterAllShortcuts } from './shortcut';
 import log from 'electron-log';
 
 log.initialize();
@@ -15,6 +16,7 @@ app.whenReady().then(() => {
 
   const win = createMainWindow();
   createTray();
+  registerGlobalShortcut(win);
 
   win.on('close', (event) => {
     if (!isQuitting) {
@@ -22,6 +24,10 @@ app.whenReady().then(() => {
       win.hide();
     }
   });
+});
+
+app.on('will-quit', () => {
+  unregisterAllShortcuts();
 });
 
 app.on('before-quit', () => {

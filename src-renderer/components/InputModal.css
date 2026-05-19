@@ -1,0 +1,53 @@
+.input-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.input-modal {
+  position: relative;
+  width: 90%;
+}
+
+.input-modal-input {
+  width: 100%;
+  padding: 14px 40px 14px 16px;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 15px;
+  color: #1f2937;
+  outline: none;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.input-modal-input:focus {
+  border-color: #7c3aed;
+}
+
+.input-modal-close {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.input-modal-close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
