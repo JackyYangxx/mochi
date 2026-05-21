@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-contextBridge.exposeInMainWorld('todoAPI', {
+console.log('[Preload] Starting');
+
+const api = {
+  preloadLoaded: true,
+  timestamp: Date.now(),
   getTodos: () => ipcRenderer.invoke('todos:getAll'),
   addTodo: (input: { content: string }) => ipcRenderer.invoke('todos:add', input),
   toggleTodo: (id: string) => ipcRenderer.invoke('todos:toggle', id),
@@ -18,6 +22,7 @@ contextBridge.exposeInMainWorld('todoAPI', {
   importData: (filePath: string) => ipcRenderer.invoke('data:import', filePath),
   sendTestReminder: () => ipcRenderer.invoke('reminder:test'),
   onTriggerInput: (callback: () => void) => {
+    console.log('[Preload] onTriggerInput registered');
     const listener = () => callback();
     ipcRenderer.on('trigger-input', listener);
     return () => ipcRenderer.removeListener('trigger-input', listener);
@@ -27,4 +32,8 @@ contextBridge.exposeInMainWorld('todoAPI', {
     ipcRenderer.on('pet-state-change', listener);
     return () => ipcRenderer.removeListener('pet-state-change', listener);
   },
-});
+};
+
+console.log('[Preload] Exposing todoAPI with methods:', Object.keys(api));
+contextBridge.exposeInMainWorld('todoAPI', api);
+console.log('[Preload] Done');

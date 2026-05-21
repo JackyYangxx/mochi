@@ -89,10 +89,12 @@ export class ReminderService {
     }
 
     const cliPath = this.settingsService.get('imCliPath') || '';
-    const cliArgs = this.settingsService.get('imCliArgs') || '';
+    const cliArgsStr = this.settingsService.get('imCliArgs') || '';
 
-    if (cliPath && cliArgs) {
-      await this.cliExecutor.execute(cliPath, cliArgs, content);
+    if (cliPath && cliArgsStr) {
+      const rawArgs = cliArgsStr.split(' ').filter(arg => arg.length > 0);
+      const cliArgs = rawArgs.map(arg => arg.replace('{content}', content));
+      await this.cliExecutor.execute(cliPath, cliArgs);
       log.info('Reminder sent successfully');
     } else {
       log.warn('IM CLI not configured, skipping send');

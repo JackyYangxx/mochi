@@ -1,9 +1,9 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useStore } from '../store';
 
 declare global {
   interface Window {
-    todoAPI: {
+    todoAPI?: {
       getTodos: () => Promise<any[]>;
       addTodo: (input: { content: string }) => Promise<any>;
       toggleTodo: (id: string) => Promise<any>;
@@ -17,10 +17,22 @@ declare global {
 
 export function useTodos() {
   const { todos, searchQuery, setTodos, addTodo, toggleTodo, deleteTodo, updateSortOrder, setShowInput } = useStore();
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadTodos = useCallback(async () => {
-    const data = await window.todoAPI.getTodos();
-    setTodos(data);
+    if (!window.todoAPI) {
+      console.log('[useTodos] todoAPI not available yet, waiting...');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const data = await window.todoAPI.getTodos();
+      setTodos(data);
+    } catch (e) {
+      console.error('[useTodos] Failed to load todos:', e);
+    } finally {
+      setIsLoading(false);
+    }
   }, [setTodos]);
 
   useEffect(() => {
@@ -28,6 +40,10 @@ export function useTodos() {
   }, [loadTodos]);
 
   useEffect(() => {
+    if (!window.todoAPI) {
+      console.log('[useTodos] todoAPI not available for onTriggerInput');
+      return;
+    }
     const cleanup = window.todoAPI.onTriggerInput(() => {
       setShowInput(true);
     });
@@ -35,17 +51,29 @@ export function useTodos() {
   }, [setShowInput]);
 
   const handleAdd = async (content: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
     const todo = await window.todoAPI.addTodo({ content });
     addTodo(todo);
     setShowInput(false);
   };
 
   const handleToggle = async (id: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
     await window.todoAPI.toggleTodo(id);
     toggleTodo(id);
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
     await window.todoAPI.deleteTodo(id);
     deleteTodo(id);
   };
@@ -60,5 +88,6 @@ export function useTodos() {
     handleToggle,
     handleDelete,
     loadTodos,
+    isLoading,
   };
 }

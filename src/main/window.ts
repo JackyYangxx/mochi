@@ -1,19 +1,27 @@
 import { BrowserWindow, screen, app } from 'electron';
 import path from 'path';
-import { getSetting, setSetting } from '../services/SettingsService';
+import { SettingsService } from '../services/SettingsService';
+import { getDb } from '../database/connection';
 
 let mainWindow: BrowserWindow | null = null;
 let isInteracting = false;
+let settingsService: SettingsService | null = null;
 
 export function saveWindowPosition(win: BrowserWindow): void {
+  if (!settingsService) {
+    settingsService = new SettingsService(getDb());
+  }
   const [x, y] = win.getPosition();
-  setSetting('window_position_x', String(x));
-  setSetting('window_position_y', String(y));
+  settingsService.set('window_position_x', String(x));
+  settingsService.set('window_position_y', String(y));
 }
 
 export function loadWindowPosition(): { x: number; y: number } | null {
-  const x = getSetting('window_position_x');
-  const y = getSetting('window_position_y');
+  if (!settingsService) {
+    settingsService = new SettingsService(getDb());
+  }
+  const x = settingsService.get('window_position_x');
+  const y = settingsService.get('window_position_y');
   if (x && y) return { x: parseInt(x, 10), y: parseInt(y, 10) };
   return null;
 }
@@ -33,6 +41,11 @@ function getInitialPosition(): { x: number; y: number } | undefined {
 export function createMainWindow(): BrowserWindow {
   const initialPos = getInitialPosition();
 
+  const preloadPath = path.join(__dirname, '../preload/index.js');
+  console.log('[Window] Preload path:', preloadPath);
+  console.log('[Window] __dirname:', __dirname);
+  console.log('[Window] preload exists:', require('fs').existsSync(preloadPath));
+
   mainWindow = new BrowserWindow({
     width: 320,
     height: 540,
@@ -45,20 +58,36 @@ export function createMainWindow(): BrowserWindow {
     skipTaskbar: true,
     hasShadow: false,
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
+      webSecurity: false,
     },
   });
+
+  console.log('[Window] BrowserWindow created');
+  console.log('[Window] webContents:', mainWindow.webContents);
+  console.log('[Window] Preload script running in:', mainWindow.webContents.getURL());
 
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   mainWindow.setAlwaysOnTop(true, 'floating');
 
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5173');
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../../dist-renderer/index.html'));
-  }
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log('[Renderer Console]', message);
+  });
+
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.log('[Renderer Process Gone]', details);
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.log('[Failed Load]', errorCode, errorDescription);
+  });
+
+  const distRendererPath = path.join(__dirname, '../../dist-renderer/index.html');
+  console.log('[Window] Loading file:', distRendererPath);
+  mainWindow.loadFile(distRendererPath);
 
   return mainWindow;
 }
