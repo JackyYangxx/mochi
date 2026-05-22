@@ -1,1 +1,7 @@
 release/*
+/node_modules
+dist
+dist-renderer
+test*
+
+.DS_Store
