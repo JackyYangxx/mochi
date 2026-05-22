@@ -26,9 +26,15 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      tr46:
+        specifier: ^5.0.0
+        version: 5.1.1
       uuid:
         specifier: ^9.0.1
         version: 9.0.1
+      webidl-conversions:
+        specifier: ^7.0.0
+        version: 7.0.0
       whatwg-url:
         specifier: ^16.0.1
         version: 16.0.1

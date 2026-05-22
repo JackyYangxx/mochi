@@ -1,6 +1,6 @@
 {
   "name": "desktop-todo-list",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "dist/main/index.js",
   "scripts": {
@@ -23,7 +23,9 @@
     "openai": "^4.104.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "tr46": "^5.0.0",
     "uuid": "^9.0.1",
+    "webidl-conversions": "^7.0.0",
     "whatwg-url": "^16.0.1",
     "zustand": "^4.5.7"
   },
