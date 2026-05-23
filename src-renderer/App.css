@@ -31,3 +31,7 @@ body {
   overflow: hidden;
   -webkit-app-region: no-drag;
 }
+
+.settings-overlay {
+  -webkit-app-region: no-drag;
+}

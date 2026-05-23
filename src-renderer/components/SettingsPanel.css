@@ -10,13 +10,29 @@
 
 .settings-panel {
   width: 90%;
-  max-height: 80vh;
+  max-width: 400px;
+  max-height: 90vh;
   background: rgba(255, 255, 255, 0.98);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.settings-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 22px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: no-drag;
 }
 
 .settings-header {
@@ -32,20 +48,7 @@
   font-weight: 600;
   color: #1f2937;
   margin: 0;
-}
-
-.settings-close {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: #9ca3af;
-  font-size: 22px;
-  cursor: pointer;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  -webkit-app-region: no-drag;
 }
 
 .settings-close:hover {
