@@ -44,8 +44,8 @@ app.whenReady().then(() => {
     if (!isQuitting) {
       event.preventDefault();
       win.hide();
+      saveWindowPosition(win);
     }
-    saveWindowPosition(win);
   });
 });
 

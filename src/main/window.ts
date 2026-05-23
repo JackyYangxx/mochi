@@ -10,9 +10,13 @@ export function saveWindowPosition(win: BrowserWindow): void {
   if (!settingsService) {
     settingsService = new SettingsService();
   }
-  const [x, y] = win.getPosition();
-  settingsService.set('window_position_x', String(x));
-  settingsService.set('window_position_y', String(y));
+  try {
+    const [x, y] = win.getPosition();
+    settingsService.set('window_position_x', String(x));
+    settingsService.set('window_position_y', String(y));
+  } catch (err) {
+    console.warn('[Window] Failed to save window position:', err);
+  }
 }
 
 export function loadWindowPosition(): { x: number; y: number } | null {
