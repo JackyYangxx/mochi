@@ -10,6 +10,7 @@ export class ReminderService {
   private settingsService: SettingsService;
   private checkInterval: NodeJS.Timeout | null = null;
   private lastReminderDate: string = '';
+  private isRunning: boolean = false;
 
   constructor(
     cliExecutor: CLIExecutor,
@@ -26,6 +27,7 @@ export class ReminderService {
    * Call this after app is ready.
    */
   start(): void {
+    this.isRunning = true;
     // Check every minute
     this.checkInterval = setInterval(() => {
       this.checkAndFire();
@@ -38,6 +40,7 @@ export class ReminderService {
    * Stop the reminder service.
    */
   stop(): void {
+    this.isRunning = false;
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
@@ -46,6 +49,8 @@ export class ReminderService {
   }
 
   private async checkAndFire(): Promise<void> {
+    if (!this.isRunning) return;
+
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
     const currentTime = now.toTimeString().slice(0, 5); // HH:MM
