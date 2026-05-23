@@ -26,6 +26,19 @@ pnpm format  # Prettier 格式化
 - 目标架构: **x64** (Windows 桌面端)
 - 配置: `electron-builder.yml` 中 win.target 指定 `arch: x64`
 
+## Release 发布流程
+
+**每次推送 release 包前，必须更新版本号：**
+
+1. 修改 `package.json` 中的 `version` 字段（语义化版本递增，如 1.0.11 → 1.0.12）
+2. 提交 commit: `git add package.json && git commit -m "chore: bump version to X.X.X"`
+3. 构建: `pnpm build && pnpm electron-builder --win x64 --dir`
+4. 打包: `cd release && zip -r Desktop-Todo-vX.X.X-win-x64.zip win-unpacked`
+5. 推送到远程: `git push origin main`
+6. 创建/更新 GitHub Release，上传 zip 包
+
+**注意：** Windows 构建在 macOS 上会因 Wine 问题导致 exe 版本信息写入失败，但 exe 本身可正常运行。
+
 ## 架构要点
 
 ### 主进程 vs 渲染进程
