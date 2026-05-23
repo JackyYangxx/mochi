@@ -56,14 +56,26 @@ export class ReminderService {
     const currentTime = now.toTimeString().slice(0, 5); // HH:MM
 
     // Get reminder times from settings
-    const timesStr = this.settingsService.get('reminderTimes');
+    let timesStr: string | null = null;
+    try {
+      timesStr = this.settingsService.get('reminderTimes');
+    } catch (err) {
+      log.warn('Failed to get reminderTimes, database may be closed:', err);
+      return;
+    }
     if (!timesStr) return;
 
     const times: string[] = JSON.parse(timesStr);
     if (!times.includes(currentTime)) return;
 
     // Already sent today
-    const lastDate = this.settingsService.get('lastReminderDate');
+    let lastDate: string | null = null;
+    try {
+      lastDate = this.settingsService.get('lastReminderDate');
+    } catch (err) {
+      log.warn('Failed to get lastReminderDate, database may be closed:', err);
+      return;
+    }
     if (lastDate === today) {
       log.info('Reminder already sent today, skipping');
       return;
@@ -72,7 +84,11 @@ export class ReminderService {
     // Fire reminder
     try {
       await this.fireReminder();
-      this.settingsService.set('lastReminderDate', today);
+      try {
+        this.settingsService.set('lastReminderDate', today);
+      } catch (err) {
+        log.warn('Failed to save lastReminderDate, database may be closed:', err);
+      }
     } catch (err) {
       log.error('Failed to fire reminder:', err);
     }
@@ -107,6 +123,8 @@ export class ReminderService {
   }
 
   private getIncompleteTodos(): { content: string; isCompleted: boolean }[] {
+    if (!this.isRunning) return [];
+
     const { TodoService } = require('./TodoService');
     const { getDb } = require('../database/connection');
     try {
