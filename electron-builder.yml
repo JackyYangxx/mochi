@@ -21,3 +21,4 @@ asarUnpack:
   - "**/*.node"
   - "**/better-sqlite3/**/*"
 npmRebuild: true
+defaultArch: x64
