@@ -16,6 +16,21 @@
   pointer-events: none;
 }
 
+.pet-size-small .pet-image {
+  width: 80px;
+  height: 80px;
+}
+
+.pet-size-medium .pet-image {
+  width: 128px;
+  height: 128px;
+}
+
+.pet-size-large .pet-image {
+  width: 192px;
+  height: 192px;
+}
+
 .pet-state-active {
   transform: scale(1.05);
 }

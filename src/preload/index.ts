@@ -32,6 +32,11 @@ const api = {
     ipcRenderer.on('pet-state-change', listener);
     return () => ipcRenderer.removeListener('pet-state-change', listener);
   },
+  onOpenSettings: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('open-settings', listener);
+    return () => ipcRenderer.removeListener('open-settings', listener);
+  },
 };
 
 console.log('[Preload] Exposing todoAPI with methods:', Object.keys(api));

@@ -15,6 +15,7 @@ type PetState = 'idle' | 'active' | 'speaking';
 
 interface PetViewProps {
   petState: PetState;
+  petSize?: 'small' | 'medium' | 'large';
   images: PetImages;
   onClick?: () => void;
 }
@@ -28,12 +29,13 @@ function getImageSrc(state: PetState, images: PetImages): string {
   return DEFAULT_ICON;
 }
 
-export default function PetView({ petState, images, onClick }: PetViewProps) {
+export default function PetView({ petState, petSize = 'medium', images, onClick }: PetViewProps) {
   const src = getImageSrc(petState, images);
+  const sizeClass = `pet-size-${petSize}`;
 
   return (
     <div
-      className={`pet-view pet-state-${petState}`}
+      className={`pet-view pet-state-${petState} ${sizeClass}`}
       onClick={onClick}
       data-testid="pet-view"
     >

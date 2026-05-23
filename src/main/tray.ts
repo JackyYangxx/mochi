@@ -26,6 +26,18 @@ export function createTray(): Tray {
     },
     { type: 'separator' },
     {
+      label: 'Settings',
+      click: () => {
+        const win = getMainWindow();
+        if (win) {
+          win.show();
+          win.focus();
+          win.webContents.send('open-settings');
+        }
+      },
+    },
+    { type: 'separator' },
+    {
       label: 'Quit',
       click: () => {
         app.quit();

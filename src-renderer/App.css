@@ -20,6 +20,7 @@ body {
   justify-content: center;
   border-radius: 16px;
   background: transparent;
+  -webkit-app-region: drag;
 }
 
 .app-content {
@@ -28,4 +29,5 @@ body {
   flex-direction: column;
   width: 100%;
   overflow: hidden;
+  -webkit-app-region: no-drag;
 }

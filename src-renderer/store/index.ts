@@ -14,7 +14,9 @@ interface TodoStore {
   todos: Todo[];
   searchQuery: string;
   showInput: boolean;
+  showSettings: boolean;
   petState: 'idle' | 'active' | 'speaking';
+  petSize: 'small' | 'medium' | 'large';
   setTodos: (todos: Todo[]) => void;
   addTodo: (todo: Todo) => void;
   toggleTodo: (id: string) => void;
@@ -22,14 +24,18 @@ interface TodoStore {
   updateSortOrder: (ids: string[]) => void;
   setSearchQuery: (query: string) => void;
   setShowInput: (show: boolean) => void;
+  setShowSettings: (show: boolean) => void;
   setPetState: (state: 'idle' | 'active' | 'speaking') => void;
+  setPetSize: (size: 'small' | 'medium' | 'large') => void;
 }
 
 export const useStore = create<TodoStore>((set) => ({
   todos: [],
   searchQuery: '',
   showInput: false,
+  showSettings: false,
   petState: 'idle',
+  petSize: 'medium',
   setTodos: (todos) => set({ todos }),
   addTodo: (todo) => set((s) => ({ todos: [...s.todos, todo] })),
   toggleTodo: (id) =>
@@ -50,5 +56,7 @@ export const useStore = create<TodoStore>((set) => ({
     })),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setShowInput: (show) => set({ showInput: show }),
+  setShowSettings: (show) => set({ showSettings: show }),
   setPetState: (state) => set({ petState: state }),
+  setPetSize: (size) => set({ petSize: size }),
 }));

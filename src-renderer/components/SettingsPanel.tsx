@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './SettingsPanel.css';
+import { useStore } from '../store';
 
 interface Settings {
   llmEndpoint: string;
@@ -273,6 +274,22 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   <div className="toggle-slider" />
                 </div>
               </label>
+            </div>
+          </section>
+
+          {/* Pet Size */}
+          <section className="settings-section">
+            <h3>Pet Size</h3>
+            <div className="settings-field">
+              <label>Pet Size</label>
+              <select
+                value={useStore((s) => s.petSize)}
+                onChange={(e) => useStore.getState().setPetSize(e.target.value as 'small' | 'medium' | 'large')}
+              >
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+              </select>
             </div>
           </section>
 
