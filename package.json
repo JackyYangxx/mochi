@@ -26,7 +26,6 @@
     "tr46": "^5.0.0",
     "uuid": "^9.0.1",
     "webidl-conversions": "^7.0.0",
-    "whatwg-url": "^16.0.1",
     "zod": "3.23.8",
     "zustand": "^4.5.7"
   },

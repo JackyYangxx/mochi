@@ -102,10 +102,15 @@ export class ReminderService {
   }
 
   private getIncompleteTodos(): { content: string; isCompleted: boolean }[] {
-    // Import TodoService here to avoid circular deps
     const { TodoService } = require('./TodoService');
     const { getDb } = require('../database/connection');
-    const service = new TodoService(getDb());
-    return service.getAll().filter((t: any) => !t.isCompleted);
+    try {
+      const db = getDb();
+      const service = new TodoService(db);
+      return service.getAll().filter((t: any) => !t.isCompleted);
+    } catch (err) {
+      log.warn('Failed to get incomplete todos, database may be closed:', err);
+      return [];
+    }
   }
 }
