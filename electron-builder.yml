@@ -11,7 +11,9 @@ extraMetadata:
 mac:
   target: dmg
 win:
-  target: nsis
+  target:
+    - target: nsis
+      arch: x64
 linux:
   target: AppImage
 asar: true

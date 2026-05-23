@@ -21,6 +21,11 @@ pnpm lint     # ESLint 检查
 pnpm format  # Prettier 格式化
 ```
 
+## Windows 构建
+
+- 目标架构: **x64** (Windows 桌面端)
+- 配置: `electron-builder.yml` 中 win.target 指定 `arch: x64`
+
 ## 架构要点
 
 ### 主进程 vs 渲染进程
