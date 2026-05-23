@@ -4,6 +4,7 @@ import { app } from 'electron';
 import log from 'electron-log';
 
 let db: Database.Database | null = null;
+let isClosing = false;
 
 export function getDbPath(): string {
   const userDataPath = app.getPath('userData');
@@ -12,7 +13,12 @@ export function getDbPath(): string {
 
 export function getDb(): Database.Database {
   if (!db) {
+    log.error('[DB] getDb() called but db is null');
     throw new Error('Database not initialized. Call initDatabase() first.');
+  }
+  if (isClosing) {
+    log.warn('[DB] getDb() called while isClosing=true, db state:', db ? 'still open' : 'already null');
+    throw new Error('Database connection is closing');
   }
   return db;
 }
@@ -37,6 +43,7 @@ export function initDatabase(): Database.Database {
   }
 
   runMigrations(db);
+  log.info('[DB] initDatabase complete');
   return db;
 }
 
@@ -72,8 +79,12 @@ function runMigrations(db: Database.Database): void {
 }
 
 export function closeDatabase(): void {
+  log.info('[DB] closeDatabase called, isClosing=true');
+  isClosing = true;
   if (db) {
     db.close();
     db = null;
+    log.info('[DB] db closed and set to null');
   }
+  log.info('[DB] closeDatabase complete');
 }

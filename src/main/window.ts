@@ -1,7 +1,6 @@
 import { BrowserWindow, screen, app } from 'electron';
 import path from 'path';
 import { SettingsService } from '../services/SettingsService';
-import { getDb } from '../database/connection';
 
 let mainWindow: BrowserWindow | null = null;
 let isInteracting = false;
@@ -9,7 +8,7 @@ let settingsService: SettingsService | null = null;
 
 export function saveWindowPosition(win: BrowserWindow): void {
   if (!settingsService) {
-    settingsService = new SettingsService(getDb());
+    settingsService = new SettingsService();
   }
   const [x, y] = win.getPosition();
   settingsService.set('window_position_x', String(x));
@@ -18,7 +17,7 @@ export function saveWindowPosition(win: BrowserWindow): void {
 
 export function loadWindowPosition(): { x: number; y: number } | null {
   if (!settingsService) {
-    settingsService = new SettingsService(getDb());
+    settingsService = new SettingsService();
   }
   const x = settingsService.get('window_position_x');
   const y = settingsService.get('window_position_y');

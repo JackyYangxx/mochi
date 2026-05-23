@@ -1,5 +1,4 @@
 import { ipcMain, app } from 'electron';
-import { getDb } from '../database/connection';
 import { TodoService } from '../services/TodoService';
 import { SettingsService } from '../services/SettingsService';
 import fs from 'fs';
@@ -9,8 +8,8 @@ let todoService: TodoService;
 let settingsService: SettingsService;
 
 export function registerIpcHandlers(): void {
-  todoService = new TodoService(getDb());
-  settingsService = new SettingsService(getDb());
+  todoService = new TodoService();
+  settingsService = new SettingsService();
 
   // Todo handlers
   ipcMain.handle('todos:getAll', () => todoService.getAll());

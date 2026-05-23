@@ -27,7 +27,7 @@ app.whenReady().then(() => {
   registerGlobalShortcut(win);
 
   // Initialize ReminderService
-  const settingsService = new SettingsService(getDb());
+  const settingsService = new SettingsService();
   const llmService = new LLMService();
   const cliExecutor = new CLIExecutor();
   reminderService = new ReminderService(cliExecutor, llmService, settingsService);

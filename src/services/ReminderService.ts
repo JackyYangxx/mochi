@@ -2,7 +2,8 @@ import { app } from 'electron';
 import log from 'electron-log';
 import { CLIExecutor } from './CLIExecutor';
 import { LLMService } from './LLMService';
-import { SettingsService } from './SettingsService';
+import { SettingsService } from '../services/SettingsService';
+import { getDb } from '../database/connection';
 
 export class ReminderService {
   private cliExecutor: CLIExecutor;
@@ -60,12 +61,19 @@ export class ReminderService {
     try {
       timesStr = this.settingsService.get('reminderTimes');
     } catch (err) {
-      log.warn('Failed to get reminderTimes, database may be closed:', err);
+      log.warn('[Reminder] Failed to get reminderTimes:', err);
       return;
     }
     if (!timesStr) return;
 
-    const times: string[] = JSON.parse(timesStr);
+    let times: string[] = [];
+    try {
+      times = JSON.parse(timesStr);
+    } catch (err) {
+      log.warn('[Reminder] Failed to parse reminderTimes:', err);
+      return;
+    }
+
     if (!times.includes(currentTime)) return;
 
     // Already sent today
@@ -73,7 +81,7 @@ export class ReminderService {
     try {
       lastDate = this.settingsService.get('lastReminderDate');
     } catch (err) {
-      log.warn('Failed to get lastReminderDate, database may be closed:', err);
+      log.warn('[Reminder] Failed to get lastReminderDate:', err);
       return;
     }
     if (lastDate === today) {
@@ -87,10 +95,10 @@ export class ReminderService {
       try {
         this.settingsService.set('lastReminderDate', today);
       } catch (err) {
-        log.warn('Failed to save lastReminderDate, database may be closed:', err);
+        log.warn('[Reminder] Failed to save lastReminderDate:', err);
       }
     } catch (err) {
-      log.error('Failed to fire reminder:', err);
+      log.error('[Reminder] Failed to fire reminder:', err);
     }
   }
 
@@ -126,13 +134,11 @@ export class ReminderService {
     if (!this.isRunning) return [];
 
     const { TodoService } = require('./TodoService');
-    const { getDb } = require('../database/connection');
     try {
-      const db = getDb();
-      const service = new TodoService(db);
+      const service = new TodoService();
       return service.getAll().filter((t: any) => !t.isCompleted);
     } catch (err) {
-      log.warn('Failed to get incomplete todos, database may be closed:', err);
+      log.warn('[Reminder] Failed to get incomplete todos:', err);
       return [];
     }
   }
