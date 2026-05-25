@@ -2,6 +2,15 @@ import { BrowserWindow, screen } from 'electron';
 import path from 'path';
 import { SettingsService } from '../services/SettingsService';
 
+const BOUNDS_KEYS = {
+  x: 'settings_window_x',
+  y: 'settings_window_y',
+  width: 'settings_window_width',
+  height: 'settings_window_height',
+} as const;
+
+const DEFAULT_SETTINGS_WINDOW_SIZE = { width: 480, height: 600 };
+
 let settingsWindow: BrowserWindow | null = null;
 let settingsService: SettingsService | null = null;
 
@@ -21,10 +30,10 @@ interface WindowBounds {
 
 function loadWindowBounds(): WindowBounds | null {
   const ss = getSettingsService();
-  const x = ss.get('settings_window_x');
-  const y = ss.get('settings_window_y');
-  const width = ss.get('settings_window_width');
-  const height = ss.get('settings_window_height');
+  const x = ss.get(BOUNDS_KEYS.x);
+  const y = ss.get(BOUNDS_KEYS.y);
+  const width = ss.get(BOUNDS_KEYS.width);
+  const height = ss.get(BOUNDS_KEYS.height);
 
   if (x && y && width && height) {
     return {
@@ -42,10 +51,10 @@ function saveWindowBounds(win: BrowserWindow): void {
   try {
     const [x, y] = win.getPosition();
     const [width, height] = win.getSize();
-    ss.set('settings_window_x', String(x));
-    ss.set('settings_window_y', String(y));
-    ss.set('settings_window_width', String(width));
-    ss.set('settings_window_height', String(height));
+    ss.set(BOUNDS_KEYS.x, String(x));
+    ss.set(BOUNDS_KEYS.y, String(y));
+    ss.set(BOUNDS_KEYS.width, String(width));
+    ss.set(BOUNDS_KEYS.height, String(height));
   } catch (err) {
     console.warn('[SettingsWindow] Failed to save window bounds:', err);
   }
@@ -66,7 +75,7 @@ function getValidBounds(): WindowBounds {
       return saved;
     }
   }
-  return { width: 480, height: 600 };
+  return DEFAULT_SETTINGS_WINDOW_SIZE;
 }
 
 export function createSettingsWindow(): BrowserWindow {
@@ -105,6 +114,10 @@ export function createSettingsWindow(): BrowserWindow {
 
   const settingsHtmlPath = path.join(__dirname, '../../dist-renderer/settings.html');
   settingsWindow.loadFile(settingsHtmlPath);
+
+  settingsWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('[SettingsWindow] Failed to load:', errorDescription);
+  });
 
   return settingsWindow;
 }
