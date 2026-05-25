@@ -10,6 +10,12 @@ export interface Todo {
   isCompleted: boolean;
 }
 
+interface PetImages {
+  idle: string | null;
+  active: string | null;
+  speaking: string | null;
+}
+
 interface TodoStore {
   todos: Todo[];
   searchQuery: string;
@@ -17,6 +23,7 @@ interface TodoStore {
   showSettings: boolean;
   petState: 'idle' | 'active' | 'speaking';
   petSize: 'small' | 'medium' | 'large';
+  petImages: PetImages;
   setTodos: (todos: Todo[]) => void;
   addTodo: (todo: Todo) => void;
   toggleTodo: (id: string) => void;
@@ -27,6 +34,7 @@ interface TodoStore {
   setShowSettings: (show: boolean) => void;
   setPetState: (state: 'idle' | 'active' | 'speaking') => void;
   setPetSize: (size: 'small' | 'medium' | 'large') => void;
+  setPetImages: (images: PetImages) => void;
 }
 
 export const useStore = create<TodoStore>((set) => ({
@@ -36,6 +44,7 @@ export const useStore = create<TodoStore>((set) => ({
   showSettings: false,
   petState: 'idle',
   petSize: 'medium',
+  petImages: { idle: null, active: null, speaking: null },
   setTodos: (todos) => set({ todos }),
   addTodo: (todo) => set((s) => ({ todos: [...s.todos, todo] })),
   toggleTodo: (id) =>
@@ -59,4 +68,5 @@ export const useStore = create<TodoStore>((set) => ({
   setShowSettings: (show) => set({ showSettings: show }),
   setPetState: (state) => set({ petState: state }),
   setPetSize: (size) => set({ petSize: size }),
+  setPetImages: (images) => set({ petImages: images }),
 }));

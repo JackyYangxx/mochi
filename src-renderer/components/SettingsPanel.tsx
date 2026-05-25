@@ -117,11 +117,13 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       await window.todoAPI.uploadPetImage(state, file.path);
       const images = await window.todoAPI.getPetImages();
       if (images) {
-        setPetImages({
+        const newImages = {
           idle: images.idle || null,
           active: images.active || null,
           speaking: images.speaking || null,
-        });
+        };
+        setPetImages(newImages);
+        useStore.getState().setPetImages(newImages);
       }
     } catch (error) {
       console.error('Failed to upload pet image:', error);
