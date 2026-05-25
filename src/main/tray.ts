@@ -1,5 +1,6 @@
 import { Tray, Menu, app, nativeImage } from 'electron';
 import { getMainWindow } from './window';
+import { openSettingsWindow } from './settingsWindow';
 
 let tray: Tray | null = null;
 
@@ -28,12 +29,7 @@ export function createTray(): Tray {
     {
       label: 'Settings',
       click: () => {
-        const win = getMainWindow();
-        if (win) {
-          win.show();
-          win.focus();
-          win.webContents.send('open-settings');
-        }
+        openSettingsWindow();
       },
     },
     { type: 'separator' },
