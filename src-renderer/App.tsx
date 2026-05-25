@@ -26,21 +26,7 @@ export default function App() {
   }, [setShowSettings]);
 
   useEffect(() => {
-    const cleanup = window.todoAPI.onRefreshPetImages(() => {
-      window.todoAPI.getPetImages().then((images) => {
-        if (images) {
-          useStore.getState().setPetImages({
-            idle: images.idle || null,
-            active: images.active || null,
-            speaking: images.speaking || null,
-          });
-        }
-      });
-    });
-    return cleanup;
-  }, []);
-
-  useEffect(() => {
+    // Initial fetch
     window.todoAPI.getPetImages().then((images) => {
       if (images) {
         setPetImages({
@@ -50,6 +36,20 @@ export default function App() {
         });
       }
     });
+
+    // Register listener for future updates
+    const cleanup = window.todoAPI.onRefreshPetImages(() => {
+      window.todoAPI.getPetImages().then((images) => {
+        if (images) {
+          setPetImages({
+            idle: images.idle || null,
+            active: images.active || null,
+            speaking: images.speaking || null,
+          });
+        }
+      });
+    });
+    return cleanup;
   }, [setPetImages]);
 
   return (
