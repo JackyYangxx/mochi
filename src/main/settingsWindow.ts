@@ -112,7 +112,7 @@ export function createSettingsWindow(): BrowserWindow {
     settingsWindow = null;
   });
 
-  const settingsHtmlPath = path.join(__dirname, '../../dist-renderer/settings.html');
+  const settingsHtmlPath = path.join(__dirname, '../../dist-renderer/src-renderer/settings.html');
   settingsWindow.loadFile(settingsHtmlPath);
 
   settingsWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
