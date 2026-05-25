@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import { createMainWindow, getMainWindow, saveWindowPosition } from './window';
 import { createTray } from './tray';
+import { openSettingsWindow, closeSettingsWindow } from './settingsWindow';
 import { initDatabase, closeDatabase, getDb } from '../database/connection';
 import { registerIpcHandlers } from './ipc';
 import { registerGlobalShortcut, unregisterAllShortcuts } from './shortcut';
@@ -38,6 +39,22 @@ app.whenReady().then(() => {
   ipcMain.handle('settings:setAutoLaunch', (_event: any, enabled: boolean) => {
     app.setLoginItemSettings({ openAtLogin: enabled });
     log.info(`Auto-launch set to: ${enabled}`);
+  });
+
+  // Settings window IPC handlers
+  ipcMain.handle('settings:window:open', () => {
+    openSettingsWindow();
+  });
+
+  ipcMain.handle('settings:window:close', () => {
+    closeSettingsWindow();
+  });
+
+  ipcMain.handle('settings:saved', () => {
+    const mainWin = getMainWindow();
+    if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.webContents.send('refresh-pet-images');
+    }
   });
 
   win.on('close', (event) => {
