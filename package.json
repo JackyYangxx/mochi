@@ -1,6 +1,6 @@
 {
   "name": "desktop-todo-list",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "",
   "main": "dist/main/index.js",
   "scripts": {
@@ -17,7 +17,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.12.1",
   "dependencies": {
-    "better-sqlite3": "^9.6.0",
+    "better-sqlite3": "9.6.0",
     "electron-log": "^5.4.4",
     "node-fetch": "^2.7.0",
     "openai": "4.77.3",
