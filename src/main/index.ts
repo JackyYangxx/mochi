@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { createMainWindow, getMainWindow, saveWindowPosition } from './window';
 import { createTray } from './tray';
 import { openSettingsWindow, closeSettingsWindow } from './settingsWindow';
@@ -35,7 +35,6 @@ app.whenReady().then(() => {
   reminderService.start();
 
   // Register IPC handler for auto-launch setting
-  const { ipcMain } = require('electron');
   ipcMain.handle('settings:setAutoLaunch', (_event: any, enabled: boolean) => {
     app.setLoginItemSettings({ openAtLogin: enabled });
     log.info(`Auto-launch set to: ${enabled}`);
@@ -51,9 +50,13 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('settings:saved', () => {
-    const mainWin = getMainWindow();
-    if (mainWin && !mainWin.isDestroyed()) {
-      mainWin.webContents.send('refresh-pet-images');
+    try {
+      const mainWin = getMainWindow();
+      if (mainWin && !mainWin.isDestroyed()) {
+        mainWin.webContents.send('refresh-pet-images');
+      }
+    } catch (error) {
+      log.error('Error in settings:saved handler:', error);
     }
   });
 
