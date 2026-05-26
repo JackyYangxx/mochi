@@ -21,6 +21,12 @@ app.whenReady().then(() => {
   registerIpcHandlers();
 
   const win = createMainWindow();
+
+  // Ensure window shows properly - especially important on Windows
+  win.once('ready-to-show', () => {
+    win.show();
+  });
+
   createTray();
   // Set auto-launch from saved setting
   const autoLaunchEnabled = app.getLoginItemSettings().openAtLogin;

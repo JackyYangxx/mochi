@@ -55,11 +55,12 @@ export function createMainWindow(): BrowserWindow {
     x: initialPos?.x,
     y: initialPos?.y,
     frame: false,
-    transparent: true,
+    transparent: process.platform === 'darwin', // Only enable transparency on macOS
     alwaysOnTop: true,
     resizable: false,
     skipTaskbar: true,
     hasShadow: false,
+    backgroundColor: '#1a1a2e', // Fallback background color
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
