@@ -1,38 +1,36 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TodoService, Todo } from '../../src/services/TodoService';
 
-// Mock better-sqlite3
+// Mock functions
 const mockAll = vi.fn();
 const mockGet = vi.fn();
 const mockRun = vi.fn();
 const mockPrepare = vi.fn();
 
-vi.mock('better-sqlite3', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      prepare: mockPrepare,
-      transaction: vi.fn((fn) => {
-        const wrapper = (...args: any[]) => fn(...args);
-        return wrapper;
-      }),
-    })),
-  };
-});
+// Mock database
+const mockDb = {
+  prepare: mockPrepare,
+  transaction: vi.fn((fn) => {
+    const wrapper = (...args: any[]) => fn(...args);
+    return wrapper;
+  }),
+};
 
 // Mock uuid
 vi.mock('uuid', () => ({
   v4: vi.fn().mockReturnValue('test-uuid-123'),
 }));
 
+// Mock the connection module
+vi.mock('../../src/database/connection', () => ({
+  getDb: vi.fn(() => mockDb),
+}));
+
 describe('TodoService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAll.mockReset();
-    mockGet.mockReset();
-    mockRun.mockReset();
-    mockPrepare.mockReset();
 
-    // Default mock behavior for prepare
+    // Setup default mock behavior for prepare
     mockPrepare.mockReturnValue({
       all: mockAll,
       get: mockGet,
@@ -40,32 +38,21 @@ describe('TodoService', () => {
     });
   });
 
-  const createMockDb = () => ({
-    prepare: mockPrepare,
-    transaction: vi.fn((fn) => {
-      const wrapper = (...args: any[]) => fn(...args);
-      return wrapper;
-    }),
-  });
-
   describe('add', () => {
-    it('adds a new todo with content', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
+    it('adds a new todo with content', () => {
+      mockGet
+        .mockReturnValueOnce({ next: 1 })
+        .mockReturnValueOnce({
+          id: 'test-uuid-123',
+          content: 'Test todo',
+          sort_order: 1,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          completed_at: null,
+          is_completed: 0,
+        });
 
-      // First get() call returns sort order
-      mockGet.mockReturnValueOnce({ next: 1 });
-      // Second get() call returns the inserted row
-      mockGet.mockReturnValueOnce({
-        id: 'test-uuid-123',
-        content: 'Test todo',
-        sort_order: 1,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T00:00:00.000Z',
-        completed_at: null,
-        is_completed: 0,
-      });
-
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       const result = service.add({ content: 'Test todo' });
 
       expect(result).toEqual({
@@ -79,21 +66,20 @@ describe('TodoService', () => {
       });
     });
 
-    it('trims whitespace from content', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
+    it('trims whitespace from content', () => {
+      mockGet
+        .mockReturnValueOnce({ next: 1 })
+        .mockReturnValueOnce({
+          id: 'test-uuid-123',
+          content: 'Trimmed content',
+          sort_order: 1,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          completed_at: null,
+          is_completed: 0,
+        });
 
-      mockGet.mockReturnValueOnce({ next: 1 });
-      mockGet.mockReturnValueOnce({
-        id: 'test-uuid-123',
-        content: 'Trimmed content',
-        sort_order: 1,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T00:00:00.000Z',
-        completed_at: null,
-        is_completed: 0,
-      });
-
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       service.add({ content: '  Trimmed content  ' });
 
       expect(mockRun).toHaveBeenCalledWith(
@@ -105,30 +91,26 @@ describe('TodoService', () => {
       );
     });
 
-    it('throws error for empty content', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-      const service = new TodoService(createMockDb() as any);
-
+    it('throws error for empty content', () => {
+      const service = new TodoService(mockDb as any);
       expect(() => service.add({ content: '   ' })).toThrow('Content cannot be empty');
     });
 
-    it('truncates content longer than 500 characters', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-      const longContent = 'a'.repeat(600);
+    it('truncates content longer than 500 characters', () => {
+      mockGet
+        .mockReturnValueOnce({ next: 1 })
+        .mockReturnValueOnce({
+          id: 'test-uuid-123',
+          content: 'a'.repeat(500),
+          sort_order: 1,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          completed_at: null,
+          is_completed: 0,
+        });
 
-      mockGet.mockReturnValueOnce({ next: 1 });
-      mockGet.mockReturnValueOnce({
-        id: 'test-uuid-123',
-        content: 'a'.repeat(500),
-        sort_order: 1,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T00:00:00.000Z',
-        completed_at: null,
-        is_completed: 0,
-      });
-
-      const service = new TodoService(createMockDb() as any);
-      service.add({ content: longContent });
+      const service = new TodoService(mockDb as any);
+      service.add({ content: 'a'.repeat(600) });
 
       expect(mockRun).toHaveBeenCalledWith(
         'test-uuid-123',
@@ -141,9 +123,7 @@ describe('TodoService', () => {
   });
 
   describe('getAll', () => {
-    it('returns all todos ordered by sort_order', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-
+    it('returns all todos ordered by sort_order', () => {
       mockAll.mockReturnValue([
         {
           id: '1',
@@ -165,7 +145,7 @@ describe('TodoService', () => {
         },
       ]);
 
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       const result = service.getAll();
 
       expect(result).toHaveLength(2);
@@ -175,21 +155,17 @@ describe('TodoService', () => {
       expect(result[1].isCompleted).toBe(true);
     });
 
-    it('returns empty array when no todos exist', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-
+    it('returns empty array when no todos exist', () => {
       mockAll.mockReturnValue([]);
 
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       const result = service.getAll();
       expect(result).toEqual([]);
     });
   });
 
   describe('toggle', () => {
-    it('toggles todo from incomplete to complete', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-
+    it('toggles todo from incomplete to complete', () => {
       mockGet
         .mockReturnValueOnce({
           id: '1',
@@ -210,16 +186,14 @@ describe('TodoService', () => {
           is_completed: 1,
         });
 
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       const result = service.toggle('1');
 
       expect(result.isCompleted).toBe(true);
       expect(result.completedAt).not.toBeNull();
     });
 
-    it('toggles todo from complete to incomplete', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-
+    it('toggles todo from complete to incomplete', () => {
       mockGet
         .mockReturnValueOnce({
           id: '1',
@@ -240,29 +214,24 @@ describe('TodoService', () => {
           is_completed: 0,
         });
 
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       const result = service.toggle('1');
 
       expect(result.isCompleted).toBe(false);
       expect(result.completedAt).toBeNull();
     });
 
-    it('throws error when todo not found', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-
+    it('throws error when todo not found', () => {
       mockGet.mockReturnValue(undefined);
 
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       expect(() => service.toggle('non-existent')).toThrow('Todo not found');
     });
   });
 
   describe('delete', () => {
-    it('deletes a todo by id', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-      const mockDb = createMockDb();
+    it('deletes a todo by id', () => {
       const service = new TodoService(mockDb as any);
-
       service.delete('1');
 
       expect(mockRun).toHaveBeenCalled();
@@ -270,9 +239,7 @@ describe('TodoService', () => {
   });
 
   describe('search', () => {
-    it('returns matching todos', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-
+    it('returns matching todos', () => {
       mockAll.mockReturnValue([
         {
           id: '1',
@@ -285,30 +252,25 @@ describe('TodoService', () => {
         },
       ]);
 
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       const result = service.search('groceries');
 
       expect(result).toHaveLength(1);
       expect(result[0].content).toBe('Buy groceries');
     });
 
-    it('returns empty array when no matches found', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-
+    it('returns empty array when no matches found', () => {
       mockAll.mockReturnValue([]);
 
-      const service = new TodoService(createMockDb() as any);
+      const service = new TodoService(mockDb as any);
       const result = service.search('nonexistent');
       expect(result).toEqual([]);
     });
   });
 
   describe('updateSortOrder', () => {
-    it('updates sort order for all provided ids', async () => {
-      const { TodoService } = await import('../../src/services/TodoService');
-      const mockDb = createMockDb();
+    it('updates sort order for all provided ids', () => {
       const service = new TodoService(mockDb as any);
-
       service.updateSortOrder(['id3', 'id1', 'id2']);
 
       expect(mockRun).toHaveBeenCalledTimes(3);

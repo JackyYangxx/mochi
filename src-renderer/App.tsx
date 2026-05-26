@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import PetView from './components/PetView';
 import TodoList from './components/TodoList';
 import InputModal from './components/InputModal';

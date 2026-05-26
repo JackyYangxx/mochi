@@ -1,9 +1,7 @@
-import { app } from 'electron';
 import log from 'electron-log';
 import { CLIExecutor } from './CLIExecutor';
 import { LLMService } from './LLMService';
 import { SettingsService } from '../services/SettingsService';
-import { getDb } from '../database/connection';
 
 export class ReminderService {
   private cliExecutor: CLIExecutor;
@@ -133,10 +131,11 @@ export class ReminderService {
   private getIncompleteTodos(): { content: string; isCompleted: boolean }[] {
     if (!this.isRunning) return [];
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { TodoService } = require('./TodoService');
     try {
       const service = new TodoService();
-      return service.getAll().filter((t: any) => !t.isCompleted);
+      return service.getAll().filter((t: { isCompleted: boolean }) => !t.isCompleted);
     } catch (err) {
       log.warn('[Reminder] Failed to get incomplete todos:', err);
       return [];

@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3';
 import { getDb } from '../database/connection';
 
 export class SettingsService {

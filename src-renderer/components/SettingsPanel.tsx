@@ -35,10 +35,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     speaking: null,
   });
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
   const loadSettings = async () => {
     try {
       const all = await window.todoAPI.getSettings();
@@ -67,6 +63,10 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       console.error('Failed to load settings:', error);
     }
   };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   const saveSetting = async (key: string, value: string) => {
     try {

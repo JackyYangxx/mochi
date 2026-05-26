@@ -4,33 +4,47 @@ import path from 'path';
 import fs from 'fs';
 
 function injectSettingsAssets() {
+  let buildStarted = false;
+
   return {
     name: 'inject-settings-assets',
     apply: 'build',
-    writeBundle(options) {
-      const distDir = options.dir;
-      const assetsDir = path.join(distDir, 'assets');
-      const settingsHtmlPath = path.join(distDir, 'src-renderer', 'settings.html');
+    buildStart() {
+      buildStarted = true;
+    },
+    closeBundle() {
+      if (!buildStarted) return;
 
-      // Find settings-related JS files (excluding main)
+      const distDir = path.join(__dirname, 'dist-renderer');
+      const settingsHtmlPath = path.join(distDir, 'src-renderer', 'settings.html');
+      const assetsDir = path.join(distDir, 'assets');
+
+      if (!fs.existsSync(assetsDir)) {
+        console.log('Assets dir not found');
+        return;
+      }
+
       const files = fs.readdirSync(assetsDir);
       const settingsJs = files.find(f => f.startsWith('settings-') && f.endsWith('.js'));
+      const mainJs = files.find(f => f.startsWith('main-') && f.endsWith('.js'));
       const settingsCss = files.find(f => f.startsWith('settings-') && f.endsWith('.css'));
+      const mainCss = files.find(f => f.startsWith('main-') && f.endsWith('.css'));
 
-      // Use settings JS if found, otherwise use main JS
-      const jsFile = settingsJs || files.find(f => f.startsWith('main-') && f.endsWith('.js'));
-      // Use settings CSS if found, otherwise use main CSS
-      const cssFile = settingsCss || files.find(f => f.startsWith('main-') && f.endsWith('.css'));
+      const jsFile = settingsJs || mainJs;
+      const cssFile = settingsCss || mainCss;
 
-      if (jsFile && cssFile && fs.existsSync(settingsHtmlPath)) {
+      console.log('Files in assets:', files);
+      console.log('Found jsFile:', jsFile, 'cssFile:', cssFile);
+
+      if (jsFile && fs.existsSync(settingsHtmlPath)) {
         const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Desktop Todo - Settings</title>
-  <script type="module" crossorigin src="./assets/${jsFile}"></script>
-  <link rel="stylesheet" crossorigin href="./assets/${cssFile}">
+  <script type="module" crossorigin src="../assets/${jsFile}"></script>
+  ${cssFile ? `<link rel="stylesheet" crossorigin href="../assets/${cssFile}">` : ''}
 </head>
 <body>
   <div id="root"></div>
