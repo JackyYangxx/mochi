@@ -16,9 +16,6 @@ win:
       arch: x64
 linux:
   target: AppImage
-asar: true
-asarUnpack:
-  - "**/*.node"
-  - "**/better-sqlite3/**/*"
+asar: false
 npmRebuild: true
 defaultArch: x64
