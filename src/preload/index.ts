@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 const api = {
   // Window controls
   closeSettingsWindow: () => ipcRenderer.invoke('settings:window:close'),
+  dragWindow: () => ipcRenderer.send('window:drag'),
+  moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.send('window:move', deltaX, deltaY),
   onRefreshPetImages: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on('refresh-pet-images', listener);

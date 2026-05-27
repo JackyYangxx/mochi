@@ -18,6 +18,40 @@ export default function App() {
   const setPetImages = useStore((s) => s.setPetImages);
   const { todos, handleAdd, handleToggle, handleDelete } = useTodos();
 
+  // Windows drag handling
+  const dragStartPos = React.useRef<{ x: number; y: number } | null>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Only handle left mouse button on the draggable container
+    if (e.button !== 0) return;
+    // Check if clicking on interactive elements (input, buttons) - don't drag
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA') {
+      return;
+    }
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!dragStartPos.current) return;
+    // Don't need to do anything during move on Windows - startDragging handles it
+  };
+
+  const handleMouseUp = (e: MouseEvent) => {
+    if (!dragStartPos.current) return;
+    const deltaX = e.clientX - dragStartPos.current.x;
+    const deltaY = e.clientY - dragStartPos.current.y;
+    // Any mouse movement while pressed should trigger drag on Windows
+    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+      window.todoAPI.dragWindow();
+    }
+    dragStartPos.current = null;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+
   useEffect(() => {
     const cleanup = window.todoAPI.onOpenSettings(() => {
       setShowSettings(true);
@@ -55,6 +89,7 @@ export default function App() {
   return (
     <div
       className="app-container"
+      onMouseDown={handleMouseDown}
       onMouseEnter={() => setPetState('active')}
       onMouseLeave={() => setPetState('idle')}
     >

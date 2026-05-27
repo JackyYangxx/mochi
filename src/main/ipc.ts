@@ -1,4 +1,4 @@
-import { ipcMain, app } from 'electron';
+import { ipcMain, app, BrowserWindow } from 'electron';
 import { TodoService } from '../services/TodoService';
 import { SettingsService } from '../services/SettingsService';
 import fs from 'fs';
@@ -24,6 +24,23 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('settings:get', (_event, key: string) => settingsService.get(key));
   ipcMain.handle('settings:set', (_event, key: string, value: string) => settingsService.set(key, value));
   ipcMain.handle('settings:delete', (_event, key: string) => settingsService.delete(key));
+
+  // Window drag handlers (for Windows compatibility)
+  ipcMain.on('window:drag', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) {
+      // startDragging() makes the window draggable - use any to bypass strict TS checking
+      (win as any).startDragging?.();
+    }
+  });
+
+  ipcMain.on('window:move', (_event, deltaX: number, deltaY: number) => {
+    const win = BrowserWindow.fromWebContents((_event as any).sender);
+    if (win && !win.isDestroyed()) {
+      const [x, y] = win.getPosition();
+      win.setPosition(x + deltaX, y + deltaY);
+    }
+  });
 
   // App handlers
   ipcMain.handle('app:setAutoLaunch', (_event, enabled: boolean) => {

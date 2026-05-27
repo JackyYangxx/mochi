@@ -25,33 +25,33 @@ function injectSettingsAssets() {
       }
 
       const files = fs.readdirSync(assetsDir);
+      // Look for settings-specific entry point
       const settingsJs = files.find(f => f.startsWith('settings-') && f.endsWith('.js'));
-      const mainJs = files.find(f => f.startsWith('main-') && f.endsWith('.js'));
       const settingsCss = files.find(f => f.startsWith('settings-') && f.endsWith('.css'));
-      const mainCss = files.find(f => f.startsWith('main-') && f.endsWith('.css'));
-
-      const jsFile = settingsJs || mainJs;
-      const cssFile = settingsCss || mainCss;
+      // Also use SettingsPanel CSS if settings CSS not found
+      const settingsPanelCss = files.find(f => f.startsWith('SettingsPanel-') && f.endsWith('.css'));
 
       console.log('Files in assets:', files);
-      console.log('Found jsFile:', jsFile, 'cssFile:', cssFile);
+      console.log('Found settingsJs:', settingsJs, 'settingsCss:', settingsCss, 'settingsPanelCss:', settingsPanelCss);
 
-      if (jsFile && fs.existsSync(settingsHtmlPath)) {
+      if (settingsJs && fs.existsSync(settingsHtmlPath)) {
+        const cssFile = settingsCss || settingsPanelCss;
+        const cssLink = cssFile ? `<link rel="stylesheet" crossorigin href="../assets/${cssFile}">` : '';
         const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Desktop Todo - Settings</title>
-  <script type="module" crossorigin src="../assets/${jsFile}"></script>
-  ${cssFile ? `<link rel="stylesheet" crossorigin href="../assets/${cssFile}">` : ''}
+  <script type="module" crossorigin src="../assets/${settingsJs}"></script>
+  ${cssLink}
 </head>
 <body>
   <div id="root"></div>
 </body>
 </html>`;
         fs.writeFileSync(settingsHtmlPath, html);
-        console.log('Injected assets into settings.html:', jsFile, cssFile);
+        console.log('Injected assets into settings.html:', settingsJs, settingsCss);
       }
     }
   };
@@ -68,6 +68,11 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         settings: path.resolve(__dirname, 'src-renderer/settings.html'),
+      },
+      output: {
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
   },

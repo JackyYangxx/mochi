@@ -119,7 +119,13 @@ export function createSettingsWindow(): BrowserWindow {
   }
 
   const settingsHtmlPath = path.join(__dirname, '../../dist-renderer/src-renderer/settings.html');
+  console.log('[SettingsWindow] Loading:', settingsHtmlPath);
   settingsWindow.loadFile(settingsHtmlPath);
+
+  settingsWindow.once('ready-to-show', () => {
+    console.log('[SettingsWindow] Ready to show');
+    settingsWindow?.show();
+  });
 
   settingsWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('[SettingsWindow] Failed to load:', errorDescription);
