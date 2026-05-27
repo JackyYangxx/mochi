@@ -61,6 +61,7 @@ export function createMainWindow(): BrowserWindow {
     skipTaskbar: true,
     hasShadow: false,
     backgroundColor: '#1a1a2e', // Fallback background color
+    show: true, // Show window immediately
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,

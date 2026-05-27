@@ -11,6 +11,9 @@ import { LLMService } from '../services/LLMService';
 import { SettingsService } from '../services/SettingsService';
 import log from 'electron-log';
 
+// Disable hardware acceleration to prevent black screen on Windows
+app.disableHardwareAcceleration();
+
 log.initialize();
 
 let isQuitting = false;
@@ -21,11 +24,6 @@ app.whenReady().then(() => {
   registerIpcHandlers();
 
   const win = createMainWindow();
-
-  // Ensure window shows properly - especially important on Windows
-  win.once('ready-to-show', () => {
-    win.show();
-  });
 
   createTray();
   // Set auto-launch from saved setting
