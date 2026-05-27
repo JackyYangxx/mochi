@@ -17,5 +17,4 @@ win:
 linux:
   target: AppImage
 asar: false
-npmRebuild: true
 defaultArch: x64

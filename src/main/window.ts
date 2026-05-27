@@ -60,7 +60,7 @@ export function createMainWindow(): BrowserWindow {
     resizable: false,
     skipTaskbar: true,
     hasShadow: false,
-    backgroundColor: '#1a1a2e', // Fallback background color
+    backgroundColor: '#00000000', // Fully transparent for macOS
     show: true, // Show window immediately
     webPreferences: {
       preload: preloadPath,
