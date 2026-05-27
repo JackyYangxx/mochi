@@ -35,6 +35,13 @@ export default function InputModal({ onAdd, onClose }: InputModalProps) {
 
   return (
     <div className="input-modal-overlay" onClick={onClose}>
+      <button
+        className="input-modal-close"
+        onClick={onClose}
+        aria-label="Close"
+      >
+        ×
+      </button>
       <div className="input-modal" onClick={(e) => e.stopPropagation()}>
         <div className="input-modal-row">
           <input
@@ -49,13 +56,6 @@ export default function InputModal({ onAdd, onClose }: InputModalProps) {
           />
           <VoiceButton onTranscript={handleTranscript} />
         </div>
-        <button
-          className="input-modal-close"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          ×
-        </button>
       </div>
     </div>
   );
