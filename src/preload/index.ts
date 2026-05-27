@@ -30,6 +30,12 @@ const api = {
   toggleTodo: (id: string) => ipcRenderer.invoke('todos:toggle', id),
   deleteTodo: (id: string) => ipcRenderer.invoke('todos:delete', id),
   updateSortOrder: (ids: string[]) => ipcRenderer.invoke('todos:updateSortOrder', ids),
+
+  // Settings
+  getSettings: () => ipcRenderer.invoke('settings:getAll'),
+  getApiKey: () => ipcRenderer.invoke('settings:get', 'apiKey'),
+  updateSetting: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value),
+  setApiKey: (apiKey: string) => ipcRenderer.invoke('settings:set', 'apiKey', apiKey),
 };
 
 contextBridge.exposeInMainWorld('todoAPI', api);

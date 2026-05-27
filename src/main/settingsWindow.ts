@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, screen, nativeImage } from 'electron';
 import path from 'path';
 import { SettingsService } from '../services/SettingsService';
 
@@ -99,6 +99,7 @@ export function createSettingsWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      webSecurity: false,
     },
   });
 
@@ -111,6 +112,11 @@ export function createSettingsWindow(): BrowserWindow {
   settingsWindow.on('closed', () => {
     settingsWindow = null;
   });
+
+  const iconPath = path.join(__dirname, '../../assets/icon.png');
+  if (require('fs').existsSync(iconPath)) {
+    settingsWindow.setIcon(nativeImage.createFromPath(iconPath));
+  }
 
   const settingsHtmlPath = path.join(__dirname, '../../dist-renderer/src-renderer/settings.html');
   settingsWindow.loadFile(settingsHtmlPath);

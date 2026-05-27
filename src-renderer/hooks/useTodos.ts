@@ -11,6 +11,15 @@ declare global {
       updateSortOrder: (ids: string[]) => Promise<void>;
       searchTodos: (query: string) => Promise<any[]>;
       onTriggerInput: (callback: () => void) => () => void;
+      onOpenSettings: (callback: () => void) => () => void;
+      onRefreshPetImages: (callback: () => void) => () => void;
+      getPetImages: () => Promise<{ idle: string | null; active: string | null; speaking: string | null }>;
+      uploadPetImage: (state: string, filePath: string) => Promise<string>;
+      getSettings: () => Promise<Record<string, string>>;
+      getApiKey: () => Promise<string | null>;
+      updateSetting: (key: string, value: string) => Promise<void>;
+      setApiKey: (apiKey: string) => Promise<void>;
+      closeSettingsWindow: () => Promise<void>;
     };
   }
 }

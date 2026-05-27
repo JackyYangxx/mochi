@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, screen, nativeImage } from 'electron';
 import path from 'path';
 import { SettingsService } from '../services/SettingsService';
 
@@ -55,7 +55,7 @@ export function createMainWindow(): BrowserWindow {
     x: initialPos?.x,
     y: initialPos?.y,
     frame: false,
-    transparent: process.platform === 'darwin', // Only enable transparency on macOS
+    transparent: true,
     alwaysOnTop: true,
     resizable: false,
     skipTaskbar: true,
@@ -89,6 +89,11 @@ export function createMainWindow(): BrowserWindow {
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.log('[Failed Load]', errorCode, errorDescription);
   });
+
+  const iconPath = path.join(__dirname, '../../assets/icon.png');
+  if (require('fs').existsSync(iconPath)) {
+    mainWindow.setIcon(nativeImage.createFromPath(iconPath));
+  }
 
   const distRendererPath = path.join(__dirname, '../../dist-renderer/index.html');
   console.log('[Window] Loading file:', distRendererPath);
