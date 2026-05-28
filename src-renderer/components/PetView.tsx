@@ -1,50 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './PetView.css';
 
-const DEFAULT_ICON = `data:image/svg+xml,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><circle cx="64" cy="64" r="60" fill="#a78bfa" opacity="0.3"/><text x="64" y="72" text-anchor="middle" font-size="48" fill="#7c3aed">🐾</text></svg>'
-)}`;
-
-interface PetImages {
-  idle: string | null;
-  active: string | null;
-  speaking: string | null;
-}
-
-type PetState = 'idle' | 'active' | 'speaking';
-
 interface PetViewProps {
-  petState: PetState;
+  petImage: string;
+  petState?: 'idle' | 'active' | 'speaking';
   petSize?: 'small' | 'medium' | 'large';
-  images: PetImages;
-  onClick?: () => void;
+  onPetClick?: () => void;
 }
 
-function getImageSrc(state: PetState, images: PetImages): string {
-  if (state === 'speaking' && images.speaking) return images.speaking;
-  if (state === 'active' && images.active) return images.active;
-  if (images.idle) return images.idle;
-  if (images.speaking) return images.speaking;
-  if (images.active) return images.active;
-  return DEFAULT_ICON;
-}
+export default function PetView({
+  petImage,
+  petState = 'idle',
+  petSize = 'medium',
+  onPetClick,
+}: PetViewProps) {
+  const [tipsMessage, setTipsMessage] = useState('');
 
-export default function PetView({ petState, petSize = 'medium', images, onClick }: PetViewProps) {
-  const src = getImageSrc(petState, images);
-  const sizeClass = `pet-size-${petSize}`;
+  // Listen for daily report generation
+  useEffect(() => {
+    const unsubscribe = window.todoAPI.onDailyReportGenerated((path: string) => {
+      setTipsMessage(`日报已生成: ${path}`);
+      setTimeout(() => setTipsMessage(''), 5000);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleClick = useCallback(() => {
+    onPetClick?.();
+  }, [onPetClick]);
 
   return (
-    <div
-      className={`pet-view pet-state-${petState} ${sizeClass}`}
-      onClick={onClick}
-      data-testid="pet-view"
-    >
-      <img
-        src={src}
-        alt="pet"
-        className="pet-image"
-        draggable={false}
-      />
+    <div className={`pet-view pet-size-${petSize}`}>
+      {tipsMessage && (
+        <div className="pet-tips">
+          {tipsMessage}
+        </div>
+      )}
+      <div
+        className={`pet-image ${petState === 'active' ? 'pet-state-active' : ''} ${petState === 'speaking' ? 'pet-state-speaking' : ''}`}
+        onClick={handleClick}
+      >
+        <img src={petImage} alt="Pet" className="pet-image" />
+      </div>
     </div>
   );
 }

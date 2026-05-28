@@ -7,6 +7,30 @@
   justify-content: center;
   transition: opacity 0.2s ease;
   -webkit-app-region: no-drag;
+  position: relative;
+}
+
+.pet-tips {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(124, 58, 237, 0.95);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: tips-fade 0.3s ease;
+  z-index: 1000;
+}
+
+@keyframes tips-fade {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .pet-image {
