@@ -37,6 +37,16 @@ const api = {
   deleteTodo: (id: string) => ipcRenderer.invoke('todos:delete', id),
   updateSortOrder: (ids: string[]) => ipcRenderer.invoke('todos:updateSortOrder', ids),
 
+  // Daily Report
+  generateDailyReport: () => ipcRenderer.invoke('dailyReport:generate'),
+  getReportDir: () => ipcRenderer.invoke('dailyReport:getReportDir'),
+  setReportDir: (dir: string) => ipcRenderer.invoke('dailyReport:setReportDir', dir),
+  onDailyReportGenerated: (callback: (path: string) => void) => {
+    const listener = (_: unknown, path: string) => callback(path);
+    ipcRenderer.on('dailyReport:generated', listener);
+    return () => ipcRenderer.removeListener('dailyReport:generated', listener);
+  },
+
   // Settings
   getSettings: () => ipcRenderer.invoke('settings:getAll'),
   getApiKey: () => ipcRenderer.invoke('settings:get', 'apiKey'),

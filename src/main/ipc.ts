@@ -1,15 +1,35 @@
 import { ipcMain, app, BrowserWindow } from 'electron';
 import { TodoService } from '../services/TodoService';
 import { SettingsService } from '../services/SettingsService';
+import { DailyReportService } from '../services/DailyReportService';
 import fs from 'fs';
 import path from 'path';
 
 let todoService: TodoService;
 let settingsService: SettingsService;
+let dailyReportService: DailyReportService | null = null;
 
 export function registerIpcHandlers(): void {
   todoService = new TodoService();
   settingsService = new SettingsService();
+
+  // Daily Report handlers
+  ipcMain.handle('dailyReport:generate', async () => {
+    if (!dailyReportService) {
+      const llmService = new (await import('../services/LLMService')).LLMService();
+      dailyReportService = new DailyReportService(llmService, settingsService);
+    }
+    return dailyReportService.generateDailyReport();
+  });
+
+  ipcMain.handle('dailyReport:getReportDir', () => {
+    return settingsService.get('reportDir') || '';
+  });
+
+  ipcMain.handle('dailyReport:setReportDir', (_event, dir: string) => {
+    settingsService.set('reportDir', dir);
+    return true;
+  });
 
   // Todo handlers
   ipcMain.handle('todos:getAll', () => todoService.getAll());
