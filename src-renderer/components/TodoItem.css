@@ -28,17 +28,7 @@
 }
 
 .todo-item.completed {
-  animation: todo-complete 0.8s ease-out;
-}
-
-@keyframes todo-complete {
-  0% { transform: scale(1); }
-  15% { transform: scale(1.1) rotate(-2deg); background: rgba(124, 58, 237, 0.4); }
-  30% { transform: scale(1.05) rotate(2deg); }
-  45% { transform: scale(1.08) rotate(-1deg); background: rgba(124, 58, 237, 0.2); }
-  60% { transform: scale(1.03) rotate(1deg); }
-  80% { transform: scale(1.02); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 0.5; }
+  opacity: 0.5;
 }
 
 .todo-checkbox {
@@ -53,27 +43,11 @@
   color: #7c3aed;
   transition: background 0.15s;
   cursor: pointer;
-  pointer-events: auto;
 }
 
 .todo-item.completed .todo-checkbox {
   background: #7c3aed;
   color: white;
-  animation: checkbox-pop 0.4s ease-out, checkbox-sparkle 0.6s ease-out;
-  position: relative;
-}
-
-@keyframes checkbox-pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.4); }
-  75% { transform: scale(0.9); }
-  100% { transform: scale(1); }
-}
-
-@keyframes checkbox-sparkle {
-  0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.8); }
-  50% { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
 }
 
 .todo-content {
@@ -86,33 +60,11 @@
   font-size: 14px;
   color: #111827;
   word-break: break-word;
-  animation: text-glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes text-glow {
-  from {
-    text-shadow: 0 0 0px rgba(124, 58, 237, 0);
-  }
-  to {
-    text-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
-  }
 }
 
 .todo-item.completed .todo-text {
   text-decoration: line-through;
   color: #9ca3af;
-  animation: text-strike 0.4s ease-out forwards, text-fade 0.6s ease-out;
-}
-
-@keyframes text-strike {
-  0% { text-decoration-color: transparent; }
-  100% { text-decoration-color: #9ca3af; }
-}
-
-@keyframes text-fade {
-  0% { color: #111827; }
-  30% { color: #7c3aed; letter-spacing: 0.5px; }
-  100% { color: #9ca3af; letter-spacing: normal; }
 }
 
 .todo-date {
