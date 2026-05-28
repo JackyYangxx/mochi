@@ -29,6 +29,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [petImages, setPetImages] = useState<PetImages>({ idle: null, active: null, speaking: null });
+  const [reportDir, setReportDir] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<{ [key: string]: HTMLInputElement | null }>({
     idle: null,
     active: null,
@@ -66,6 +68,11 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     loadSettings();
+    const loadDir = async () => {
+      const dir = await window.todoAPI.getReportDir();
+      if (dir) setReportDir(dir);
+    };
+    loadDir();
   }, []);
 
   const saveSetting = async (key: string, value: string) => {
@@ -127,6 +134,48 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       }
     } catch (error) {
       console.error('Failed to upload pet image:', error);
+    }
+  };
+
+  const handleResetPetImage = async (state: 'idle' | 'active' | 'speaking') => {
+    try {
+      await window.todoAPI.resetPetImage(state);
+      const images = await window.todoAPI.getPetImages();
+      if (images) {
+        const newImages = {
+          idle: images.idle || null,
+          active: images.active || null,
+          speaking: images.speaking || null,
+        };
+        setPetImages(newImages);
+        useStore.getState().setPetImages(newImages);
+      }
+    } catch (error) {
+      console.error('Failed to reset pet image:', error);
+    }
+  };
+
+  const handleSelectReportDir = async () => {
+    const dir = prompt('请输入日报保存目录路径:', reportDir);
+    if (dir) {
+      await window.todoAPI.setReportDir(dir);
+      setReportDir(dir);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    setIsGenerating(true);
+    try {
+      const result = await window.todoAPI.generateDailyReport();
+      if (result.success) {
+        alert(`日报已生成: ${result.reportPath}`);
+      } else {
+        alert(`生成失败: ${result.error}`);
+      }
+    } catch (err) {
+      alert(`生成失败: ${err}`);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -315,8 +364,40 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   >
                     Choose Image
                   </button>
+                  <button
+                    className="reset-button"
+                    onClick={() => handleResetPetImage(state)}
+                  >
+                    Reset
+                  </button>
                 </div>
               ))}
+            </div>
+          </section>
+
+          {/* Daily Report Settings */}
+          <section className="settings-section">
+            <h3>日报设置</h3>
+            <div className="settings-field">
+              <label>日报保存目录</label>
+              <div className="setting-row">
+                <input
+                  type="text"
+                  value={reportDir}
+                  onChange={e => setReportDir(e.target.value)}
+                  placeholder="选择日报保存目录"
+                />
+                <button onClick={handleSelectReportDir}>选择</button>
+              </div>
+            </div>
+            <div className="settings-field">
+              <button
+                className="primary-button"
+                onClick={handleGenerateReport}
+                disabled={isGenerating}
+              >
+                {isGenerating ? '生成中...' : '生成日报'}
+              </button>
             </div>
           </section>
         </div>

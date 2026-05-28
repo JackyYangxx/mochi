@@ -404,3 +404,26 @@
 .reset-button:hover {
   background: rgba(239, 68, 68, 0.1);
 }
+
+.setting-row {
+  display: flex;
+  gap: 8px;
+}
+
+.setting-row input {
+  flex: 1;
+}
+
+.primary-button {
+  background: #7c3aed;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
