@@ -16,7 +16,8 @@ export default function App() {
   const setShowSettings = useStore((s) => s.setShowSettings);
   const setPetState = useStore((s) => s.setPetState);
   const setPetImages = useStore((s) => s.setPetImages);
-  const { todos, handleAdd, handleToggle, handleDelete } = useTodos();
+  const { todos, handleAdd, handleToggle, handleDelete, handleUpdate } = useTodos();
+  const [editingTodo, setEditingTodo] = React.useState<{ id: string; content: string } | null>(null);
 
   // Windows drag handling
   const dragStartPos = React.useRef<{ x: number; y: number } | null>(null);
@@ -27,6 +28,11 @@ export default function App() {
     // Check if clicking on interactive elements (input, buttons) - don't drag
     const target = e.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA') {
+      return;
+    }
+    // Don't drag when clicking on todo items or other app-content children
+    const appContent = document.querySelector('.app-content');
+    if (appContent && appContent.contains(target)) {
       return;
     }
     dragStartPos.current = { x: e.clientX, y: e.clientY };
@@ -104,12 +110,24 @@ export default function App() {
           todos={todos}
           onToggle={handleToggle}
           onDelete={handleDelete}
+          onEdit={(id, content) => setEditingTodo({ id, content })}
         />
       </div>
       {showInput && (
         <InputModal
           onAdd={handleAdd}
           onClose={() => setShowInput(false)}
+        />
+      )}
+      {editingTodo && (
+        <InputModal
+          initialValue={editingTodo.content}
+          onAdd={() => {}}
+          onEdit={(content) => {
+            handleUpdate(editingTodo.id, content);
+            setEditingTodo(null);
+          }}
+          onClose={() => setEditingTodo(null)}
         />
       )}
       {showSettings && (

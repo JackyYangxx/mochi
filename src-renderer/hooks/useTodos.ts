@@ -7,6 +7,7 @@ declare global {
       getTodos: () => Promise<any[]>;
       addTodo: (input: { content: string }) => Promise<any>;
       toggleTodo: (id: string) => Promise<any>;
+      updateTodo: (id: string, content: string) => Promise<any>;
       deleteTodo: (id: string) => Promise<void>;
       updateSortOrder: (ids: string[]) => Promise<void>;
       searchTodos: (query: string) => Promise<any[]>;
@@ -25,7 +26,7 @@ declare global {
 }
 
 export function useTodos() {
-  const { todos, searchQuery, setTodos, addTodo, toggleTodo, deleteTodo, updateSortOrder, setShowInput } = useStore();
+  const { todos, searchQuery, setTodos, addTodo, toggleTodo, deleteTodo, updateTodo, setShowInput } = useStore();
   const [isLoading, setIsLoading] = useState(false);
 
   const loadTodos = useCallback(async () => {
@@ -87,6 +88,15 @@ export function useTodos() {
     deleteTodo(id);
   };
 
+  const handleUpdate = async (id: string, content: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
+    await window.todoAPI.updateTodo(id, content);
+    updateTodo(id, content);
+  };
+
   const filteredTodos = searchQuery
     ? todos.filter((t) => t.content.toLowerCase().includes(searchQuery.toLowerCase()))
     : todos;
@@ -96,6 +106,7 @@ export function useTodos() {
     handleAdd,
     handleToggle,
     handleDelete,
+    handleUpdate,
     loadTodos,
     isLoading,
   };

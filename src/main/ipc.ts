@@ -16,6 +16,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('todos:add', (_event, input: { content: string }) => todoService.add(input));
   ipcMain.handle('todos:toggle', (_event, id: string) => todoService.toggle(id));
   ipcMain.handle('todos:delete', (_event, id: string) => todoService.delete(id));
+  ipcMain.handle('todos:update', (_event, id: string, content: string) => todoService.update(id, content));
   ipcMain.handle('todos:search', (_event, query: string) => todoService.search(query));
   ipcMain.handle('todos:updateSortOrder', (_event, ids: string[]) => todoService.updateSortOrder(ids));
 
@@ -66,6 +67,14 @@ export function registerIpcHandlers(): void {
     const destPath = path.join(imagesDir, destFileName);
     fs.copyFileSync(filePath, destPath);
     settingsService.set(`petImage_${state}`, destPath);
+
+    // Notify main window to refresh pet images
+    const windows = BrowserWindow.getAllWindows();
+    for (const win of windows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('refresh-pet-images');
+      }
+    }
     return destPath;
   });
 
@@ -74,6 +83,28 @@ export function registerIpcHandlers(): void {
     active: settingsService.get('petImage_active'),
     speaking: settingsService.get('petImage_speaking'),
   }));
+
+  ipcMain.handle('pets:resetImage', (_event, state: string) => {
+    const key = `petImage_${state}`;
+    const currentPath = settingsService.get(key);
+    if (currentPath) {
+      try {
+        fs.unlinkSync(currentPath);
+      } catch (e) {
+        // Ignore if file doesn't exist
+      }
+    }
+    settingsService.delete(key);
+
+    // Notify main window to refresh pet images
+    const windows = BrowserWindow.getAllWindows();
+    for (const win of windows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('refresh-pet-images');
+      }
+    }
+    return null;
+  });
 
   // Data import/export handlers
   ipcMain.handle('data:export', (_event, filePath: string) => {

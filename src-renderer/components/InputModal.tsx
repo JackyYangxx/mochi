@@ -3,24 +3,35 @@ import VoiceButton from './VoiceButton';
 import './InputModal.css';
 
 interface InputModalProps {
+  initialValue?: string;
   onAdd: (content: string) => void;
+  onEdit?: (content: string) => void;
   onClose: () => void;
 }
 
-export default function InputModal({ onAdd, onClose }: InputModalProps) {
-  const [text, setText] = useState('');
+export default function InputModal({ initialValue = '', onAdd, onEdit, onClose }: InputModalProps) {
+  const [text, setText] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    inputRef.current?.select();
   }, []);
+
+  const handleSubmit = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    if (onEdit) {
+      onEdit(trimmed.length > 500 ? trimmed.slice(0, 500) : trimmed);
+    } else {
+      onAdd(trimmed.length > 500 ? trimmed.slice(0, 500) : trimmed);
+    }
+    onClose();
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      const trimmed = text.trim();
-      if (trimmed) {
-        onAdd(trimmed.length > 500 ? trimmed.slice(0, 500) : trimmed);
-      }
+      handleSubmit();
     } else if (e.key === 'Escape') {
       onClose();
     }

@@ -28,6 +28,7 @@ interface TodoStore {
   addTodo: (todo: Todo) => void;
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
+  updateTodo: (id: string, content: string) => void;
   updateSortOrder: (ids: string[]) => void;
   setSearchQuery: (query: string) => void;
   setShowInput: (show: boolean) => void;
@@ -54,6 +55,10 @@ export const useStore = create<TodoStore>((set) => ({
       ),
     })),
   deleteTodo: (id) => set((s) => ({ todos: s.todos.filter((t) => t.id !== id) })),
+  updateTodo: (id, content) =>
+    set((s) => ({
+      todos: s.todos.map((t) => (t.id === id ? { ...t, content, updatedAt: new Date().toISOString() } : t)),
+    })),
   updateSortOrder: (ids) =>
     set((s) => ({
       todos: ids

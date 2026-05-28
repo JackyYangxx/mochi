@@ -7,10 +7,11 @@ interface TodoListProps {
   todos: Todo[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, content: string) => void;
   onReorder?: (ids: string[]) => void;
 }
 
-export default function TodoList({ todos, onToggle, onDelete }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoListProps) {
   if (todos.length === 0) {
     return (
       <div className="todo-list-empty">
@@ -32,6 +33,7 @@ export default function TodoList({ todos, onToggle, onDelete }: TodoListProps) {
           }}
           onToggle={onToggle}
           onDelete={onDelete}
+          onEdit={onEdit}
         />
       ))}
     </div>

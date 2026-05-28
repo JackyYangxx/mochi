@@ -25,11 +25,14 @@ const api = {
   getPetImages: () => ipcRenderer.invoke('pets:getImages'),
   uploadPetImage: (state: string, filePath: string) =>
     ipcRenderer.invoke('pets:uploadImage', state, filePath),
+  resetPetImage: (state: string) =>
+    ipcRenderer.invoke('pets:resetImage', state),
 
   // Todos
   getTodos: () => ipcRenderer.invoke('todos:getAll'),
   addTodo: (input: { content: string }) => ipcRenderer.invoke('todos:add', input),
   toggleTodo: (id: string) => ipcRenderer.invoke('todos:toggle', id),
+  updateTodo: (id: string, content: string) => ipcRenderer.invoke('todos:update', id, content),
   deleteTodo: (id: string) => ipcRenderer.invoke('todos:delete', id),
   updateSortOrder: (ids: string[]) => ipcRenderer.invoke('todos:updateSortOrder', ids),
 

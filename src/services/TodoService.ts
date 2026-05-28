@@ -90,6 +90,19 @@ export class TodoService {
     db.prepare('DELETE FROM todos WHERE id = ?').run(id);
   }
 
+  update(id: string, content: string): Todo {
+    const db = getDb();
+    const row = db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow | undefined;
+    if (!row) throw new Error('Todo not found');
+
+    const now = new Date().toISOString();
+    const trimmed = content.trim().slice(0, 500);
+
+    db.prepare('UPDATE todos SET content = ?, updated_at = ? WHERE id = ?').run(trimmed, now, id);
+
+    return rowToTodo(db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow);
+  }
+
   search(query: string): Todo[] {
     const db = getDb();
     const rows = db
