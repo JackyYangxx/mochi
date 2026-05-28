@@ -2,6 +2,8 @@ import log from 'electron-log';
 import { CLIExecutor } from './CLIExecutor';
 import { LLMService } from './LLMService';
 import { SettingsService } from '../services/SettingsService';
+import { DailyReportService } from './DailyReportService';
+import { getMainWindow } from '../main/window';
 
 export class ReminderService {
   private cliExecutor: CLIExecutor;
@@ -90,6 +92,8 @@ export class ReminderService {
     // Fire reminder
     try {
       await this.fireReminder();
+      // Fire daily report after reminder
+      await this.fireDailyReport();
       try {
         this.settingsService.set('lastReminderDate', today);
       } catch (err) {
@@ -139,6 +143,33 @@ export class ReminderService {
     } catch (err) {
       log.warn('[Reminder] Failed to get incomplete todos:', err);
       return [];
+    }
+  }
+
+  private async fireDailyReport(): Promise<void> {
+    try {
+      const reportDir = this.settingsService.get('reportDir');
+      if (!reportDir) {
+        log.info('[Reminder] Daily report not triggered: reportDir not configured');
+        return;
+      }
+
+      const dailyReportService = new DailyReportService(this.llmService, this.settingsService);
+      const result = await dailyReportService.generateDailyReport();
+
+      // Send notification to renderer
+      const mainWin = getMainWindow();
+      if (mainWin && !mainWin.isDestroyed()) {
+        mainWin.webContents.send('dailyReport:generated', result.reportPath || '');
+      }
+
+      if (result.success) {
+        log.info('[Reminder] Daily report generated:', result.reportPath);
+      } else {
+        log.warn('[Reminder] Daily report generation failed:', result.error);
+      }
+    } catch (err) {
+      log.error('[Reminder] Failed to fire daily report:', err);
     }
   }
 }
