@@ -5,12 +5,26 @@
   padding: 10px 12px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.6);
-  transition: background 0.15s, opacity 0.15s;
+  transition: background 0.15s, opacity 0.15s, transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  animation: todo-enter 0.4s ease-out;
+}
+
+@keyframes todo-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .todo-item:hover {
   background: rgba(255, 255, 255, 0.85);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
 }
 
 .todo-item.completed {
@@ -35,6 +49,13 @@
 .todo-item.completed .todo-checkbox {
   background: #7c3aed;
   color: white;
+  animation: checkbox-pop 0.3s ease-out;
+}
+
+@keyframes checkbox-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
 }
 
 .todo-content {
@@ -47,11 +68,22 @@
   font-size: 14px;
   color: #111827;
   word-break: break-word;
+  animation: text-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes text-glow {
+  from {
+    text-shadow: 0 0 0px rgba(124, 58, 237, 0);
+  }
+  to {
+    text-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
+  }
 }
 
 .todo-item.completed .todo-text {
   text-decoration: line-through;
   color: #9ca3af;
+  animation: none;
 }
 
 .todo-date {
