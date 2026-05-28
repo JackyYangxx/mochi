@@ -42,15 +42,23 @@ export default function App() {
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!dragStartPos.current) return;
-    // Don't need to do anything during move on Windows - startDragging handles it
+    // Windows: use moveTo for immediate drag feedback
+    if (process.platform === 'win32') {
+      const win = window as any;
+      if (win.todoAPI) {
+        const deltaX = e.screenX - dragStartPos.current.x;
+        const deltaY = e.screenY - dragStartPos.current.y;
+        win.todoAPI.moveWindow(deltaX, deltaY);
+      }
+    }
   };
 
   const handleMouseUp = (e: MouseEvent) => {
     if (!dragStartPos.current) return;
     const deltaX = e.clientX - dragStartPos.current.x;
     const deltaY = e.clientY - dragStartPos.current.y;
-    // Any mouse movement while pressed should trigger drag on Windows
-    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+    // macOS: use startDragging for native drag
+    if (process.platform !== 'win32' && (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3)) {
       window.todoAPI.dragWindow();
     }
     dragStartPos.current = null;
