@@ -81,3 +81,4 @@ pnpm format  # Prettier 格式化
 - 设计规范: `docs/superpowers/specs/2026-05-18-desktop-todo-agent-design.md`
 - 实现计划: `docs/superpowers/plans/2026-05-18-desktop-todo-agent-implementation.md`
 - 任务列表: `docs/superpowers/tasks/2026-05-18-desktop-todo-tasklist.md`
+- 经验反思: Settings 窗口样式调整（见 Claude Code memory 目录）
