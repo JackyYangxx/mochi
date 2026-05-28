@@ -20,7 +20,7 @@ export default function App() {
   const [editingTodo, setEditingTodo] = React.useState<{ id: string; content: string } | null>(null);
 
   // Windows drag handling
-  const dragStartPos = React.useRef<{ mouseX: number; mouseY: number } | null>(null);
+  const dragState = React.useRef<{ mouseX: number; mouseY: number; didDrag: boolean } | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // Only handle left mouse button on the draggable container
@@ -35,25 +35,33 @@ export default function App() {
     if (todoList && todoList.contains(target)) {
       return;
     }
-    dragStartPos.current = { mouseX: e.screenX, mouseY: e.screenY };
+    dragState.current = { mouseX: e.screenX, mouseY: e.screenY, didDrag: false };
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!dragStartPos.current) return;
-    const deltaX = e.screenX - dragStartPos.current.mouseX;
-    const deltaY = e.screenY - dragStartPos.current.mouseY;
-    window.todoAPI.moveWindow(deltaX, deltaY);
-    // Update start position so next delta is relative to last position
-    dragStartPos.current = { mouseX: e.screenX, mouseY: e.screenY };
+    if (!dragState.current) return;
+    const deltaX = e.screenX - dragState.current.mouseX;
+    const deltaY = e.screenY - dragState.current.mouseY;
+    // If moved more than 5px, consider it a drag
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      dragState.current.didDrag = true;
+      window.todoAPI.moveWindow(deltaX, deltaY);
+      // Update start position so next delta is relative to last position
+      dragState.current.mouseX = e.screenX;
+      dragState.current.mouseY = e.screenY;
+    }
   };
 
   const handleMouseUp = () => {
-    if (!dragStartPos.current) return;
-    dragStartPos.current = null;
+    if (!dragState.current) return;
+    const didDrag = dragState.current.didDrag;
+    dragState.current = null;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+    // Store whether this was a drag so PetView onClick can check
+    (window as any).__wasDrag = didDrag;
   };
 
   useEffect(() => {
@@ -101,7 +109,12 @@ export default function App() {
         petState={petState}
         petSize={petSize}
         images={petImages}
-        onClick={() => setShowInput(true)}
+        onClick={() => {
+          if (!(window as any).__wasDrag) {
+            setShowInput(true);
+          }
+          (window as any).__wasDrag = false;
+        }}
       />
       <div className="app-content">
         <TodoList
