@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import './TodoItem.css';
 
 export interface TodoItemData {
@@ -16,9 +16,54 @@ interface TodoItemProps {
 }
 
 export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
+  const itemRef = useRef<HTMLDivElement>(null);
+  const checkboxRef = useRef<HTMLDivElement>(null);
+  const animationTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    // Only trigger animation once when first completing
+    if (todo.isCompleted && !animationTriggeredRef.current) {
+      animationTriggeredRef.current = true;
+      triggerCompletionAnimation();
+    }
+    if (!todo.isCompleted) {
+      animationTriggeredRef.current = false;
+    }
+  }, [todo.isCompleted]);
+
+  function triggerCompletionAnimation() {
+    if (!itemRef.current || !checkboxRef.current) return;
+
+    const item = itemRef.current;
+    const checkbox = checkboxRef.current;
+    const colors = ['#7c3aed', '#ec4899', '#8b5cf6', '#f472b6', '#a855f7'];
+
+    // Create particles
+    const particleCount = 10;
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('span');
+      particle.className = 'todo-particle';
+      particle.style.setProperty('--color', colors[i % colors.length]);
+      const angle = (i / particleCount) * 360;
+      const rad = (angle * Math.PI) / 180;
+      const distance = 40;
+      particle.style.setProperty('--tx', `${Math.cos(rad) * distance}px`);
+      particle.style.setProperty('--ty', `${Math.sin(rad) * distance}px`);
+      checkbox.appendChild(particle);
+
+      // Remove particle after animation
+      particle.addEventListener('animationend', () => particle.remove());
+    }
+
+    // Remove particles after animation
+    setTimeout(() => {
+      // particles auto-remove via animationend event
+    }, 600);
+  }
+
   return (
-    <div className={`todo-item ${todo.isCompleted ? 'completed' : ''}`}>
-      <div className="todo-checkbox" onClick={() => onToggle(todo.id)}>
+    <div className={`todo-item ${todo.isCompleted ? 'completed' : ''}`} ref={itemRef}>
+      <div className="todo-checkbox" ref={checkboxRef} onClick={() => onToggle(todo.id)}>
         {todo.isCompleted && (
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M2 7l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      animejs:
+        specifier: ^4.4.1
+        version: 4.4.1
       better-sqlite3:
         specifier: 9.6.0
         version: 9.6.0
@@ -869,6 +872,9 @@ packages:
 
   ajv@6.15.0:
     resolution: {integrity: sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw==}
+
+  animejs@4.4.1:
+    resolution: {integrity: sha512-XimhJw4vPb6tAd6Zaoa6BaspJ8UteQMKvL7Pvrt6MW/6u2UvJs0TB/LLqR1sigaiYvpVPC3Tokr9emcCMhWFhw==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -3928,6 +3934,8 @@ snapshots:
       fast-json-stable-stringify: 2.1.0
       json-schema-traverse: 0.4.1
       uri-js: 4.4.1
+
+  animejs@4.4.1: {}
 
   ansi-regex@5.0.1: {}
 

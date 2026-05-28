@@ -12,6 +12,28 @@ interface TodoListProps {
 }
 
 export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoListProps) {
+  const [sortedIds, setSortedIds] = React.useState<string[]>([]);
+  const pendingSortRef = React.useRef(false);
+  const prevTodosRef = React.useRef<Todo[]>([]);
+
+  React.useEffect(() => {
+    // Detect which todo just got completed
+    const newlyCompleted = todos.find(t => t.isCompleted &&
+      !prevTodosRef.current.find(pt => pt.id === t.id)?.isCompleted);
+
+    if (newlyCompleted && !pendingSortRef.current) {
+      pendingSortRef.current = true;
+      setTimeout(() => {
+        setSortedIds(todos.filter(t => !t.isCompleted).map(t => t.id).concat(todos.filter(t => t.isCompleted).map(t => t.id)));
+        pendingSortRef.current = false;
+      }, 600);
+    } else if (!todos.some(t => t.isCompleted)) {
+      setSortedIds(todos.map(t => t.id));
+    }
+
+    prevTodosRef.current = [...todos];
+  }, [todos]);
+
   if (todos.length === 0) {
     return (
       <div className="todo-list-empty">
@@ -20,9 +42,13 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
     );
   }
 
+  const orderedTodos = sortedIds.length > 0
+    ? sortedIds.map(id => todos.find(t => t.id === id)!).filter(Boolean)
+    : todos;
+
   return (
     <div className="todo-list">
-      {todos.map((todo) => (
+      {orderedTodos.map((todo) => (
         <TodoItem
           key={todo.id}
           todo={{
