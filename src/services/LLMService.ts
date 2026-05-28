@@ -49,6 +49,45 @@ export class LLMService {
     return response.choices[0]?.message?.content || todoList;
   }
 
+  async generateDailyReport(
+    completedTodos: { content: string; completedAt: string }[],
+    incompleteTodos: { content: string }[]
+  ): Promise<{ completedSection: string; incompleteSection: string; summary: string }> {
+    if (!this.client) {
+      throw new Error('LLM client not configured');
+    }
+
+    const completedList = completedTodos.map((t) => `- ${t.content}`).join('\n');
+    const incompleteList = incompleteTodos.map((t) => `- ${t.content}`).join('\n');
+
+    const response = await this.client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: '你是一个工作日报助手。请根据以下完成和未完成的待办事项，生成中文日报内容。返回 JSON 格式，包含 completedSection、incompleteSection 和 summary 三个字段。',
+        },
+        {
+          role: 'user',
+          content: `完成事项：\n${completedList || '（无）'}\n\n未完成事项：\n${incompleteList || '（无）'}\n\n请生成日报，返回 JSON 格式。`,
+        },
+      ],
+      max_tokens: 500,
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content || '';
+    try {
+      return JSON.parse(content);
+    } catch {
+      return {
+        completedSection: completedList || '（无）',
+        incompleteSection: incompleteList || '（无）',
+        summary: '请手动查看待办事项。',
+      };
+    }
+  }
+
   isConfigured(): boolean {
     return this.client !== null;
   }
