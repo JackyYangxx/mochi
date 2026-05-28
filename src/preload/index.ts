@@ -5,6 +5,7 @@ const api = {
   closeSettingsWindow: () => ipcRenderer.invoke('settings:window:close'),
   dragWindow: () => ipcRenderer.send('window:drag'),
   moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.send('window:move', deltaX, deltaY),
+  getWindowPosition: () => ipcRenderer.invoke('window:getPosition'),
   onRefreshPetImages: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on('refresh-pet-images', listener);

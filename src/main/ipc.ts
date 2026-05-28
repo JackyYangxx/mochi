@@ -43,6 +43,14 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle('window:getPosition', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) {
+      return win.getPosition();
+    }
+    return [0, 0];
+  });
+
   // App handlers
   ipcMain.handle('app:setAutoLaunch', (_event, enabled: boolean) => {
     app.setLoginItemSettings({

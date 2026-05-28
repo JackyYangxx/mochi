@@ -20,7 +20,7 @@ export default function App() {
   const [editingTodo, setEditingTodo] = React.useState<{ id: string; content: string } | null>(null);
 
   // Windows drag handling
-  const dragStartPos = React.useRef<{ x: number; y: number } | null>(null);
+  const dragStartPos = React.useRef<{ mouseX: number; mouseY: number } | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // Only handle left mouse button on the draggable container
@@ -30,37 +30,27 @@ export default function App() {
     if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA') {
       return;
     }
-    // Don't drag when clicking on todo items or other app-content children
-    const appContent = document.querySelector('.app-content');
-    if (appContent && appContent.contains(target)) {
+    // Don't drag when clicking on todo items inside app-content
+    const todoList = document.querySelector('.todo-list');
+    if (todoList && todoList.contains(target)) {
       return;
     }
-    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    dragStartPos.current = { mouseX: e.screenX, mouseY: e.screenY };
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!dragStartPos.current) return;
-    // Windows: use moveTo for immediate drag feedback
-    if (process.platform === 'win32') {
-      const win = window as any;
-      if (win.todoAPI) {
-        const deltaX = e.screenX - dragStartPos.current.x;
-        const deltaY = e.screenY - dragStartPos.current.y;
-        win.todoAPI.moveWindow(deltaX, deltaY);
-      }
-    }
+    const deltaX = e.screenX - dragStartPos.current.mouseX;
+    const deltaY = e.screenY - dragStartPos.current.mouseY;
+    window.todoAPI.moveWindow(deltaX, deltaY);
+    // Update start position so next delta is relative to last position
+    dragStartPos.current = { mouseX: e.screenX, mouseY: e.screenY };
   };
 
-  const handleMouseUp = (e: MouseEvent) => {
+  const handleMouseUp = () => {
     if (!dragStartPos.current) return;
-    const deltaX = e.clientX - dragStartPos.current.x;
-    const deltaY = e.clientY - dragStartPos.current.y;
-    // macOS: use startDragging for native drag
-    if (process.platform !== 'win32' && (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3)) {
-      window.todoAPI.dragWindow();
-    }
     dragStartPos.current = null;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
