@@ -148,16 +148,14 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="settings-overlay" onClick={onClose}>
-      <div className="settings-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="settings-header">
-          <h2>Settings</h2>
-          <button className="settings-close" onClick={onClose}>
-            &times;
-          </button>
-        </div>
-
-        <div className="settings-content">
+    <div className="settings-panel">
+      <div className="settings-header">
+        <h2>Settings</h2>
+        <button className="settings-close" onClick={onClose}>
+          &times;
+        </button>
+      </div>
+      <div className="settings-content">
           {/* LLM API Configuration */}
           <section className="settings-section">
             <h3>LLM API Configuration</h3>
@@ -322,7 +320,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             </div>
           </section>
         </div>
-      </div>
     </div>
   );
 }

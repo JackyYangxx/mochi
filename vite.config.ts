@@ -35,8 +35,9 @@ function injectSettingsAssets() {
       console.log('Found settingsJs:', settingsJs, 'settingsCss:', settingsCss, 'settingsPanelCss:', settingsPanelCss);
 
       if (settingsJs && fs.existsSync(settingsHtmlPath)) {
-        const cssFile = settingsCss || settingsPanelCss;
-        const cssLink = cssFile ? `<link rel="stylesheet" crossorigin href="../assets/${cssFile}">` : '';
+        // Use SettingsPanel CSS for full styles, plus settings CSS for scrollbar hiding
+        const settingsCssLink = settingsCss ? `<link rel="stylesheet" crossorigin href="../assets/${settingsCss}">` : '';
+        const panelCssLink = settingsPanelCss ? `<link rel="stylesheet" crossorigin href="../assets/${settingsPanelCss}">` : '';
         const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -44,14 +45,15 @@ function injectSettingsAssets() {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Desktop Todo - Settings</title>
   <script type="module" crossorigin src="../assets/${settingsJs}"></script>
-  ${cssLink}
+  ${settingsCssLink}
+  ${panelCssLink}
 </head>
 <body>
   <div id="root"></div>
 </body>
 </html>`;
         fs.writeFileSync(settingsHtmlPath, html);
-        console.log('Injected assets into settings.html:', settingsJs, settingsCss);
+        console.log('Injected assets into settings.html:', settingsJs, settingsCss, settingsPanelCss);
       }
     }
   };

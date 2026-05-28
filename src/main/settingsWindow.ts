@@ -91,7 +91,7 @@ export function createSettingsWindow(): BrowserWindow {
     minWidth: 400,
     minHeight: 500,
     resizable: true,
-    frame: true,
+    frame: false,
     title: 'Desktop Todo - Settings',
     show: false,
     webPreferences: {
