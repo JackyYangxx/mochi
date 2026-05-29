@@ -13,6 +13,7 @@ interface TodoListProps {
 
 export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoListProps) {
   const [sortedIds, setSortedIds] = React.useState<string[]>([]);
+  const [animatingIds, setAnimatingIds] = React.useState<Set<string>>(new Set());
   const pendingSortRef = React.useRef(false);
   const prevTodosRef = React.useRef<Todo[]>([]);
 
@@ -23,6 +24,8 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
 
     if (newlyCompleted && !pendingSortRef.current) {
       pendingSortRef.current = true;
+      // Trigger animation for the newly completed todo
+      setAnimatingIds(prev => new Set(prev).add(newlyCompleted.id));
       setTimeout(() => {
         setSortedIds(todos.filter(t => !t.isCompleted).map(t => t.id).concat(todos.filter(t => t.isCompleted).map(t => t.id)));
         pendingSortRef.current = false;
@@ -33,6 +36,16 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
 
     prevTodosRef.current = [...todos];
   }, [todos]);
+
+  // Clear animation flag after animation completes
+  React.useEffect(() => {
+    if (animatingIds.size > 0) {
+      const timer = setTimeout(() => {
+        setAnimatingIds(new Set());
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [animatingIds]);
 
   if (todos.length === 0) {
     return (
@@ -56,6 +69,7 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
             content: todo.content,
             isCompleted: todo.isCompleted,
             createdAt: todo.createdAt,
+            showAnimation: animatingIds.has(todo.id),
           }}
           onToggle={onToggle}
           onDelete={onDelete}

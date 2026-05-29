@@ -7,6 +7,7 @@ export interface TodoItemData {
   content: string;
   isCompleted: boolean;
   createdAt: string;
+  showAnimation?: boolean;
 }
 
 interface TodoItemProps {
@@ -19,24 +20,11 @@ interface TodoItemProps {
 export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
   const checkboxRef = useRef<HTMLDivElement>(null);
-  const animationTriggeredRef = useRef(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  useEffect(() => {
-    // Only trigger animation once when first completing
-    if (todo.isCompleted && !animationTriggeredRef.current) {
-      animationTriggeredRef.current = true;
-      triggerCompletionAnimation();
-    }
-    if (!todo.isCompleted) {
-      animationTriggeredRef.current = false;
-    }
-  }, [todo.isCompleted]);
 
   function triggerCompletionAnimation() {
     if (!itemRef.current || !checkboxRef.current) return;
 
-    const item = itemRef.current;
     const checkbox = checkboxRef.current;
     const colors = ['#7c3aed', '#ec4899', '#8b5cf6', '#f472b6', '#a855f7'];
 
@@ -56,12 +44,14 @@ export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemP
       // Remove particle after animation
       particle.addEventListener('animationend', () => particle.remove());
     }
-
-    // Remove particles after animation
-    setTimeout(() => {
-      // particles auto-remove via animationend event
-    }, 600);
   }
+
+  // Trigger animation when told to by TodoList
+  useEffect(() => {
+    if ((todo as any).showAnimation) {
+      triggerCompletionAnimation();
+    }
+  }, [(todo as any).showAnimation]);
 
   return (
     <div className={`todo-item ${todo.isCompleted ? 'completed' : ''}`} ref={itemRef}>
