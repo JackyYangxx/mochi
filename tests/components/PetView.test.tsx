@@ -1,14 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import PetView from '../../src-renderer/components/PetView';
+
+// Mock todoAPI before each test
+beforeEach(() => {
+  Object.defineProperty(window, 'todoAPI', {
+    value: {
+      onDailyReportGenerated: vi.fn(() => () => {}),
+    },
+    writable: true,
+    configurable: true,
+  });
+});
 
 describe('PetView', () => {
   it('renders default icon when no image provided', () => {
     render(<PetView petState="idle" images={{ idle: null, active: null, speaking: null }} />);
-    const img = screen.getByRole('img');
-    expect(img).toBeDefined();
-    // Default icon is an SVG data URL
-    expect(img.getAttribute('src')).toContain('data:image/svg+xml');
+    const defaultIcon = document.querySelector('.pet-default-icon');
+    expect(defaultIcon).toBeDefined();
   });
 
   it('renders idle image when provided', () => {

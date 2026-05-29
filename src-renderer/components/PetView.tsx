@@ -2,16 +2,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './PetView.css';
 
 interface PetViewProps {
-  petImage: string;
   petState?: 'idle' | 'active' | 'speaking';
   petSize?: 'small' | 'medium' | 'large';
+  images: {
+    idle: string | null;
+    active: string | null;
+    speaking: string | null;
+  };
   onPetClick?: () => void;
 }
 
 export default function PetView({
-  petImage,
   petState = 'idle',
   petSize = 'medium',
+  images,
   onPetClick,
 }: PetViewProps) {
   const [tipsMessage, setTipsMessage] = useState('');
@@ -29,6 +33,8 @@ export default function PetView({
     onPetClick?.();
   }, [onPetClick]);
 
+  const currentImage = images[petState] || images.idle || '';
+
   return (
     <div className={`pet-view pet-size-${petSize}`}>
       {tipsMessage && (
@@ -40,7 +46,11 @@ export default function PetView({
         className={`pet-image ${petState === 'active' ? 'pet-state-active' : ''} ${petState === 'speaking' ? 'pet-state-speaking' : ''}`}
         onClick={handleClick}
       >
-        <img src={petImage} alt="Pet" className="pet-image" />
+        {currentImage ? (
+          <img src={currentImage} alt="Pet" className="pet-image" />
+        ) : (
+          <div className="pet-default-icon" />
+        )}
       </div>
     </div>
   );
