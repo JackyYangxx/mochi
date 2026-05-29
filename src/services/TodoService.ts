@@ -120,4 +120,27 @@ export class TodoService {
     });
     update();
   }
+
+  getByDateRange(startDate: string, endDate: string): Todo[] {
+    const db = getDb();
+    const rows = db
+      .prepare('SELECT * FROM todos WHERE created_at >= ? AND created_at < ? ORDER BY created_at DESC')
+      .all(startDate, endDate) as TodoRow[];
+    return rows.map(rowToTodo);
+  }
+
+  archiveCompletedByDate(date: string): Todo[] {
+    const db = getDb();
+    const startOfDay = `${date}T00:00:00`;
+    const endOfDay = `${date}T23:59:59.999`;
+    const transaction = db.transaction(() => {
+      const rows = db
+        .prepare('SELECT * FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at <= ?')
+        .all(startOfDay, endOfDay) as TodoRow[];
+      db.prepare('DELETE FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at <= ?')
+        .run(startOfDay, endOfDay);
+      return rows.map(rowToTodo);
+    });
+    return transaction();
+  }
 }
