@@ -132,12 +132,15 @@ export class TodoService {
   archiveCompletedByDate(date: string): Todo[] {
     const db = getDb();
     const startOfDay = `${date}T00:00:00`;
-    const endOfDay = `${date}T23:59:59.999`;
+    const nextDateObj = new Date(date);
+    nextDateObj.setDate(nextDateObj.getDate() + 1);
+    const nextDayStr = nextDateObj.toISOString().slice(0, 10);
+    const endOfDay = `${nextDayStr}T00:00:00`;
     const transaction = db.transaction(() => {
       const rows = db
-        .prepare('SELECT * FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at <= ?')
+        .prepare('SELECT * FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at < ?')
         .all(startOfDay, endOfDay) as TodoRow[];
-      db.prepare('DELETE FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at <= ?')
+      db.prepare('DELETE FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at < ?')
         .run(startOfDay, endOfDay);
       return rows.map(rowToTodo);
     });
