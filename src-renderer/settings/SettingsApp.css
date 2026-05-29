@@ -1,0 +1,20 @@
+/* Settings window - hide scrollbars but keep functionality */
+.settings-window-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.settings-window-content::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+.settings-window-content * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.settings-window-content *::-webkit-scrollbar {
+  display: none;
+}

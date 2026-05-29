@@ -33,6 +33,7 @@ body {
   flex-direction: column;
   width: 100%;
   overflow: hidden;
+  -webkit-app-region: no-drag;
   /* Allow drag on entire container for Windows compatibility */
 }
 

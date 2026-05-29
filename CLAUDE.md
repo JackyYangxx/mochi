@@ -13,13 +13,39 @@ Electron + React 桌面端待办工具，以宠物形态悬浮在桌面，支持
 ## 开发命令
 
 ```bash
-pnpm dev      # 开发模式 (Vite dev server + Electron)
-pnpm build    # 生产构建
-pnpm test     # Vitest 单元测试
-pnpm test:e2e # Playwright E2E 测试
-pnpm lint     # ESLint 检查
-pnpm format  # Prettier 格式化
+pnpm build && pnpm start  # 构建 + 运行生产版本（推荐）
+pnpm dev                  # 仅启动 Vite dev server（需要单独启动 Electron）
+pnpm build                # 生产构建（vite + tsc）
+pnpm test                 # Vitest 单元测试
+pnpm test:e2e             # Playwright E2E 测试
+pnpm lint                 # ESLint 检查
+pnpm format               # Prettier 格式化
 ```
+
+**注意：** `pnpm dev` 仅启动 Vite 开发服务器，不会自动启动 Electron。要在开发模式下运行，需先构建再启动：`pnpm build && pnpm start`
+
+## macOS 运行
+
+**前提条件：native 模块重建**
+
+Apple Silicon Mac (M1/M2/M3) 需要先重建 native 模块：
+
+```bash
+npx @electron/rebuild -f -w better-sqlite3
+```
+
+**启动命令：**
+
+```bash
+pnpm build && pnpm start    # 构建 + 运行生产版本
+pnpm dev                     # 开发模式（Vite dev server + Electron）
+```
+
+**启动流程：**
+
+1. `pnpm build` 执行 `vite build` (构建渲染进程资源) + `tsc -p tsconfig.main.json` (编译主进程 TypeScript)
+2. `pnpm start` 执行 `electron dist/main/index.js` 启动 Electron 主进程
+3. 主进程初始化：数据库连接 → 注册 IPC handlers → 创建主窗口 → 创建托盘图标 → 注册全局快捷键 → 启动 ReminderService
 
 ## Windows 构建
 
@@ -62,6 +88,7 @@ pnpm format  # Prettier 格式化
 - SQLite with better-sqlite3
 - 迁移系统: `src/database/migrations/`
 - Schema: `todos`, `settings`, `migrations` 表
+- **注意**: Apple Silicon Mac 运行前需执行 `npx @electron/rebuild -f -w better-sqlite3`
 
 ### 关键安全措施
 
