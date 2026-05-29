@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import './TodoItem.css';
+import ConfirmModal from './ConfirmModal/ConfirmModal';
 
 export interface TodoItemData {
   id: string;
@@ -19,6 +20,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemP
   const itemRef = useRef<HTMLDivElement>(null);
   const checkboxRef = useRef<HTMLDivElement>(null);
   const animationTriggeredRef = useRef(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     // Only trigger animation once when first completing
@@ -91,12 +93,24 @@ export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemP
         className="todo-delete"
         onClick={(e) => {
           e.stopPropagation();
-          onDelete(todo.id);
+          setShowDeleteConfirm(true);
         }}
         aria-label="Delete"
       >
         ×
       </button>
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="删除确认"
+        message="确定要删除该待办事项吗？"
+        confirmText="删除"
+        cancelText="取消"
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          onDelete(todo.id);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }
