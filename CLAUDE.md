@@ -10,14 +10,39 @@ Electron + React 桌面端待办工具，以宠物形态悬浮在桌面，支持
 - Vite (构建), better-sqlite3 (数据库), Zustand (状态)
 - Web Speech API (语音), OpenAI API (LLM)
 
+## 测试
+
+### Electron 桌面应用测试
+
+```bash
+pnpm build && pnpm start  # 构建后在 Electron 桌面窗口中测试
+```
+
+**重要：** 这是 Electron 桌面应用，不是浏览器应用。测试时需要：
+1. 运行 `pnpm build && pnpm start`
+2. 应用会在桌面窗口中显示（悬浮宠物形态）
+3. 全局快捷键 `CmdOrCtrl+Shift+T` 触发输入框
+4. 托盘图标可以打开设置
+
+### 单元测试
+
+```bash
+pnpm test                 # Vitest 单元测试
+pnpm test:e2e             # Playwright E2E 测试（如果配置）
+```
+
+### Apple Silicon Mac native 模块重建
+
+```bash
+npx @electron/rebuild -f -w better-sqlite3  # M1/M2/M3 需要执行
+```
+
 ## 开发命令
 
 ```bash
-pnpm build && pnpm start  # 构建 + 运行生产版本（推荐）
+pnpm build && pnpm start  # 构建 + 运行 Electron（推荐）
 pnpm dev                  # 仅启动 Vite dev server（需要单独启动 Electron）
 pnpm build                # 生产构建（vite + tsc）
-pnpm test                 # Vitest 单元测试
-pnpm test:e2e             # Playwright E2E 测试
 pnpm lint                 # ESLint 检查
 pnpm format               # Prettier 格式化
 ```
@@ -78,10 +103,22 @@ pnpm dev                     # 开发模式（Vite dev server + Electron）
 | 通道 | 功能 |
 |------|------|
 | `todos:getAll` | 获取所有待办 |
-| `todos:add` | 添加待办 |
+| `todos:add` | 添加待办（支持 `parentId` 参数创建子待办） |
 | `todos:toggle` | 切换完成状态 |
-| `todos:delete` | 删除待办 |
+| `todos:delete` | 删除待办（级联删除子待办） |
 | `trigger-input` | 全局快捷键触发输入 |
+
+### 数据库 Schema
+
+**todos 表结构：**
+- `id` TEXT PRIMARY KEY
+- `content` TEXT NOT NULL
+- `sort_order` INTEGER DEFAULT 0
+- `created_at` DATETIME
+- `updated_at` DATETIME
+- `completed_at` DATETIME
+- `is_completed` INTEGER DEFAULT 0
+- `parent_id` TEXT DEFAULT NULL（支持子待办嵌套）
 
 ### 数据库
 
