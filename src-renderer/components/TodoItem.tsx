@@ -6,12 +6,14 @@ export interface TodoItemData {
   content: string;
   isCompleted: boolean;
   createdAt: string;
+  completedAt?: string | null;
   parentId?: string | null;
 }
 
 interface TodoItemProps {
   todo: TodoItemData;
   children?: TodoItemData[];      // NEW: subtasks
+  childSortKey?: number;          // NEW: triggers child re-sort
   isExpanded?: boolean;           // NEW: expand state
   shouldAnimate?: boolean;
   onToggle: (id: string) => void;
@@ -22,29 +24,20 @@ interface TodoItemProps {
   onDeleteChild?: (id: string) => void;    // NEW
 }
 
-function TodoItemInner({ todo, children, isExpanded, shouldAnimate, onToggle, onDelete, onEdit, onToggleExpand, onRequestAddChild, onDeleteChild }: TodoItemProps) {
+function TodoItemInner({ todo, children, childSortKey, isExpanded, shouldAnimate, onToggle, onDelete, onEdit, onToggleExpand, onRequestAddChild, onDeleteChild }: TodoItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
   const checkboxRef = useRef<HTMLDivElement>(null);
-  const hasAnimatedRef = useRef<Record<string, boolean>>({});
-  // Reset when todo becomes completed
-  const wasCompletedRef = useRef<Record<string, boolean>>({});
+  const wasCompletedRef = useRef<boolean>(todo.isCompleted);
 
   useEffect(() => {
-    // Reset animation state when todo becomes completed (transition from false to true)
-    if (todo.isCompleted && !wasCompletedRef.current[todo.id]) {
-      hasAnimatedRef.current[todo.id] = false;
-      wasCompletedRef.current[todo.id] = true;
-    } else if (!todo.isCompleted) {
-      wasCompletedRef.current[todo.id] = false;
+    // Trigger animation when completion state changes
+    if (wasCompletedRef.current !== todo.isCompleted) {
+      wasCompletedRef.current = todo.isCompleted;
+      if (itemRef.current && checkboxRef.current) {
+        triggerCompletionAnimation();
+      }
     }
-  }, [todo.id, todo.isCompleted]);
-
-  useEffect(() => {
-    if (shouldAnimate && !hasAnimatedRef.current[todo.id]) {
-      hasAnimatedRef.current[todo.id] = true;
-      triggerCompletionAnimation();
-    }
-  }, [shouldAnimate, todo.id]);
+  }, [todo.isCompleted]);
 
   function triggerCompletionAnimation() {
     if (!itemRef.current || !checkboxRef.current) return;
@@ -68,29 +61,19 @@ function TodoItemInner({ todo, children, isExpanded, shouldAnimate, onToggle, on
     }
   }
 
+  const hasChildren = children && children.length > 0;
+
   return (
     <>
       <div className={`todo-item ${todo.isCompleted ? 'completed' : ''}`} ref={itemRef}>
-        {onToggleExpand && (
-          <button
-            className="todo-expand"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand();
-            }}
-            aria-label={isExpanded ? 'Collapse' : 'Expand'}
-          >
-            {isExpanded ? '▼' : '▶'}
-          </button>
-        )}
-        <div className="todo-checkbox" ref={checkboxRef} onClick={() => onToggle(todo.id)}>
+        <div className={`todo-checkbox${hasChildren ? ' has-children' : ''}`} ref={checkboxRef} onClick={() => onToggle(todo.id)}>
           {todo.isCompleted && (
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M2 7l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           )}
         </div>
-        <div className="todo-content">
+        <div className={`todo-content${hasChildren ? ' clickable' : ''}`} onClick={() => hasChildren && onToggleExpand && onToggleExpand()}>
           <span className="todo-text" title={todo.content}>{todo.content}</span>
           <span className="todo-date">{new Date(todo.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
         </div>

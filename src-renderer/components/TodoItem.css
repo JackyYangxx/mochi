@@ -52,6 +52,18 @@
   color: white;
 }
 
+.todo-checkbox.has-children {
+  cursor: pointer;
+}
+
+.todo-content.clickable {
+  cursor: pointer;
+}
+
+.todo-content.clickable:hover .todo-text {
+  color: #7c3aed;
+}
+
 .todo-content {
   flex: 1;
   min-width: 0;
