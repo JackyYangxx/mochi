@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import './TodoItem.css';
 
 export interface TodoItemData {
@@ -10,18 +10,25 @@ export interface TodoItemData {
 
 interface TodoItemProps {
   todo: TodoItemData;
+  children?: TodoItemData[];      // NEW: subtasks
+  isExpanded?: boolean;           // NEW: expand state
   shouldAnimate?: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, content: string) => void;
+  onToggleExpand?: () => void;    // NEW
+  onAddChild?: (content: string) => void;  // NEW
+  onDeleteChild?: (id: string) => void;    // NEW
 }
 
-function TodoItemInner({ todo, shouldAnimate, onToggle, onDelete, onEdit }: TodoItemProps) {
+function TodoItemInner({ todo, children, isExpanded, shouldAnimate, onToggle, onDelete, onEdit, onToggleExpand, onAddChild, onDeleteChild }: TodoItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
   const checkboxRef = useRef<HTMLDivElement>(null);
   const hasAnimatedRef = useRef<Record<string, boolean>>({});
   // Reset when todo becomes completed
   const wasCompletedRef = useRef<Record<string, boolean>>({});
+  const [showAddChildInput, setShowAddChildInput] = useState(false);
+  const [newChildContent, setNewChildContent] = useState('');
 
   useEffect(() => {
     // Reset animation state when todo becomes completed (transition from false to true)
@@ -64,6 +71,18 @@ function TodoItemInner({ todo, shouldAnimate, onToggle, onDelete, onEdit }: Todo
 
   return (
     <div className={`todo-item ${todo.isCompleted ? 'completed' : ''}`} ref={itemRef}>
+      {onToggleExpand && (
+        <button
+          className="todo-expand"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand();
+          }}
+          aria-label={isExpanded ? 'Collapse' : 'Expand'}
+        >
+          {isExpanded ? '▼' : '▶'}
+        </button>
+      )}
       <div className="todo-checkbox" ref={checkboxRef} onClick={() => onToggle(todo.id)}>
         {todo.isCompleted && (
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -98,6 +117,53 @@ function TodoItemInner({ todo, shouldAnimate, onToggle, onDelete, onEdit }: Todo
       >
         ×
       </button>
+      {onAddChild && (
+        <button
+          className="todo-add-child"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowAddChildInput(true);
+          }}
+          aria-label="Add subtask"
+        >
+          +
+        </button>
+      )}
+      {showAddChildInput && (
+        <div className="todo-add-child-form">
+          <input
+            type="text"
+            value={newChildContent}
+            onChange={(e) => setNewChildContent(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newChildContent.trim()) {
+                onAddChild(newChildContent.trim());
+                setNewChildContent('');
+                setShowAddChildInput(false);
+              }
+              if (e.key === 'Escape') {
+                setShowAddChildInput(false);
+                setNewChildContent('');
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            autoFocus
+          />
+        </div>
+      )}
+      {children && children.length > 0 && isExpanded && (
+        <div className="todo-children">
+          {children.map(child => (
+            <TodoItemInner
+              key={child.id}
+              todo={child}
+              onToggle={onDeleteChild ? (id) => onToggle(id) : onToggle}
+              onDelete={onDeleteChild || onDelete}
+              onEdit={onEdit}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
