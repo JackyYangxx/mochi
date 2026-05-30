@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import './TodoItem.css';
 
 export interface TodoItemData {
@@ -18,18 +18,16 @@ interface TodoItemProps {
   onDelete: (id: string) => void;
   onEdit: (id: string, content: string) => void;
   onToggleExpand?: () => void;    // NEW
-  onAddChild?: (content: string) => void;  // NEW
+  onRequestAddChild?: (parentId: string) => void;  // NEW: triggers global modal
   onDeleteChild?: (id: string) => void;    // NEW
 }
 
-function TodoItemInner({ todo, children, isExpanded, shouldAnimate, onToggle, onDelete, onEdit, onToggleExpand, onAddChild, onDeleteChild }: TodoItemProps) {
+function TodoItemInner({ todo, children, isExpanded, shouldAnimate, onToggle, onDelete, onEdit, onToggleExpand, onRequestAddChild, onDeleteChild }: TodoItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
   const checkboxRef = useRef<HTMLDivElement>(null);
   const hasAnimatedRef = useRef<Record<string, boolean>>({});
   // Reset when todo becomes completed
   const wasCompletedRef = useRef<Record<string, boolean>>({});
-  const [showAddChildInput, setShowAddChildInput] = useState(false);
-  const [newChildContent, setNewChildContent] = useState('');
 
   useEffect(() => {
     // Reset animation state when todo becomes completed (transition from false to true)
@@ -118,39 +116,17 @@ function TodoItemInner({ todo, children, isExpanded, shouldAnimate, onToggle, on
       >
         ×
       </button>
-      {onAddChild && (
+      {onRequestAddChild && (
         <button
           className="todo-add-child"
           onClick={(e) => {
             e.stopPropagation();
-            setShowAddChildInput(true);
+            onRequestAddChild(todo.id);
           }}
           aria-label="Add subtask"
         >
           +
         </button>
-      )}
-      {showAddChildInput && (
-        <div className="todo-add-child-form">
-          <input
-            type="text"
-            value={newChildContent}
-            onChange={(e) => setNewChildContent(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && newChildContent.trim()) {
-                onAddChild(newChildContent.trim());
-                setNewChildContent('');
-                setShowAddChildInput(false);
-              }
-              if (e.key === 'Escape') {
-                setShowAddChildInput(false);
-                setNewChildContent('');
-              }
-            }}
-            onClick={(e) => e.stopPropagation()}
-            autoFocus
-          />
-        </div>
       )}
       {children && children.length > 0 && isExpanded && (
         <div className="todo-children">

@@ -12,8 +12,10 @@ export default function App() {
   const petImages = useStore((s) => s.petImages);
   const showInput = useStore((s) => s.showInput);
   const showSettings = useStore((s) => s.showSettings);
+  const addingSubtaskForId = useStore((s) => s.addingSubtaskForId);
   const setShowInput = useStore((s) => s.setShowInput);
   const setShowSettings = useStore((s) => s.setShowSettings);
+  const setAddingSubtaskForId = useStore((s) => s.setAddingSubtaskForId);
   const setPetState = useStore((s) => s.setPetState);
   const setPetImages = useStore((s) => s.setPetImages);
   const { todos, handleAdd, handleToggle, handleDelete, handleUpdate, handleAddChild, handleDeleteChild } = useTodos();
@@ -124,14 +126,20 @@ export default function App() {
           onToggle={handleToggle}
           onDelete={handleDelete}
           onEdit={(id, content) => setEditingTodo({ id, content })}
-          onAddChild={handleAddChild}
+          onRequestAddChild={(parentId) => {
+            setAddingSubtaskForId(parentId);
+            setShowInput(true);
+          }}
           onDeleteChild={handleDeleteChild}
         />
       </div>
       {showInput && (
         <InputModal
-          onAdd={handleAdd}
-          onClose={() => setShowInput(false)}
+          onAdd={addingSubtaskForId ? (content) => handleAddChild(addingSubtaskForId, content) : handleAdd}
+          onClose={() => {
+            setShowInput(false);
+            setAddingSubtaskForId(null);
+          }}
         />
       )}
       {editingTodo && (

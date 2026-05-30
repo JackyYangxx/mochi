@@ -22,6 +22,7 @@ interface TodoStore {
   searchQuery: string;
   showInput: boolean;
   showSettings: boolean;
+  addingSubtaskForId: string | null;  // NEW: parent todo id when adding subtask via modal
   petState: 'idle' | 'active' | 'speaking';
   petSize: 'small' | 'medium' | 'large';
   petImages: PetImages;
@@ -34,6 +35,7 @@ interface TodoStore {
   setSearchQuery: (query: string) => void;
   setShowInput: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
+  setAddingSubtaskForId: (id: string | null) => void;  // NEW
   setPetState: (state: 'idle' | 'active' | 'speaking') => void;
   setPetSize: (size: 'small' | 'medium' | 'large') => void;
   setPetImages: (images: PetImages) => void;
@@ -44,6 +46,7 @@ export const useStore = create<TodoStore>((set) => ({
   searchQuery: '',
   showInput: false,
   showSettings: false,
+  addingSubtaskForId: null,  // NEW
   petState: 'idle',
   petSize: 'medium',
   petImages: { idle: null, active: null, speaking: null },
@@ -72,6 +75,7 @@ export const useStore = create<TodoStore>((set) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setShowInput: (show) => set({ showInput: show }),
   setShowSettings: (show) => set({ showSettings: show }),
+  setAddingSubtaskForId: (id) => set({ addingSubtaskForId: id }),  // NEW
   setPetState: (state) => set({ petState: state }),
   setPetSize: (size) => set({ petSize: size }),
   setPetImages: (images) => set({ petImages: images }),

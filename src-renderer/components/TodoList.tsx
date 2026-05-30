@@ -9,11 +9,11 @@ interface TodoListProps {
   onDelete: (id: string) => void;
   onEdit: (id: string, content: string) => void;
   onReorder?: (ids: string[]) => void;
-  onAddChild?: (parentId: string, content: string) => void;
+  onRequestAddChild?: (parentId: string) => void;  // CHANGED: triggers global modal
   onDeleteChild?: (parentId: string, childId: string) => void;
 }
 
-export default function TodoList({ todos, onToggle, onDelete, onEdit, onAddChild, onDeleteChild }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestAddChild, onDeleteChild }: TodoListProps) {
   const [sortedIds, setSortedIds] = React.useState<string[]>([]);
   const [animatingIds, setAnimatingIds] = React.useState<Set<string>>(new Set());
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
@@ -97,7 +97,7 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onAddChild
                 return next;
               });
             }}
-            onAddChild={onAddChild ? (content) => onAddChild(todo.id, content) : undefined}
+            onRequestAddChild={onRequestAddChild ? (id) => onRequestAddChild(id) : undefined}
             onDeleteChild={onDeleteChild ? (childId) => onDeleteChild(todo.id, childId) : undefined}
           />
         );
