@@ -16,7 +16,7 @@ export default function App() {
   const setShowSettings = useStore((s) => s.setShowSettings);
   const setPetState = useStore((s) => s.setPetState);
   const setPetImages = useStore((s) => s.setPetImages);
-  const { todos, handleAdd, handleToggle, handleDelete, handleUpdate } = useTodos();
+  const { todos, handleAdd, handleToggle, handleDelete, handleUpdate, handleAddChild, handleDeleteChild } = useTodos();
   const [editingTodo, setEditingTodo] = React.useState<{ id: string; content: string } | null>(null);
 
   // Windows drag handling
@@ -124,6 +124,8 @@ export default function App() {
           onToggle={handleToggle}
           onDelete={handleDelete}
           onEdit={(id, content) => setEditingTodo({ id, content })}
+          onAddChild={handleAddChild}
+          onDeleteChild={handleDeleteChild}
         />
       </div>
       {showInput && (

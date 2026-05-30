@@ -97,6 +97,24 @@ export function useTodos() {
     updateTodo(id, content);
   };
 
+  const handleAddChild = async (parentId: string, content: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
+    const todo = await window.todoAPI.addTodo({ content, parentId });
+    addTodo(todo);
+  };
+
+  const handleDeleteChild = async (parentId: string, childId: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
+    await window.todoAPI.deleteTodo(childId);
+    deleteTodo(childId);
+  };
+
   const filteredTodos = searchQuery
     ? todos.filter((t) => t.content.toLowerCase().includes(searchQuery.toLowerCase()))
     : todos;
@@ -107,6 +125,8 @@ export function useTodos() {
     handleToggle,
     handleDelete,
     handleUpdate,
+    handleAddChild,
+    handleDeleteChild,
     loadTodos,
     isLoading,
   };

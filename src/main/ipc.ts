@@ -33,7 +33,7 @@ export function registerIpcHandlers(): void {
 
   // Todo handlers
   ipcMain.handle('todos:getAll', () => todoService.getAll());
-  ipcMain.handle('todos:add', (_event, input: { content: string }) => todoService.add(input));
+  ipcMain.handle('todos:add', (_event, input: { content: string; parentId?: string }) => todoService.add(input));
   ipcMain.handle('todos:toggle', (_event, id: string) => todoService.toggle(id));
   ipcMain.handle('todos:delete', (_event, id: string) => todoService.delete(id));
   ipcMain.handle('todos:update', (_event, id: string, content: string) => todoService.update(id, content));
