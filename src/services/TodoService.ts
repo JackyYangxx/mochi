@@ -40,7 +40,6 @@ export class TodoService {
     if (!content) {
       throw new Error('Content cannot be empty');
     }
-    const truncated = content.length > 500 ? content.slice(0, 500) : content;
     const id = uuidv4();
     const now = new Date().toISOString();
 
@@ -52,7 +51,7 @@ export class TodoService {
       .prepare(
         'INSERT INTO todos (id, content, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
       )
-      .run(id, truncated, maxSort.next, now, now);
+      .run(id, content, maxSort.next, now, now);
 
     return rowToTodo(
       db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow
@@ -96,7 +95,7 @@ export class TodoService {
     if (!row) throw new Error('Todo not found');
 
     const now = new Date().toISOString();
-    const trimmed = content.trim().slice(0, 500);
+    const trimmed = content.trim();
 
     db.prepare('UPDATE todos SET content = ?, updated_at = ? WHERE id = ?').run(trimmed, now, id);
 

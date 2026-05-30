@@ -109,8 +109,10 @@ export default function App() {
         petState={petState}
         petSize={petSize}
         images={petImages}
-        onClick={() => {
+        onPetClick={() => {
+          console.log('onPetClick called, __wasDrag:', (window as any).__wasDrag);
           if (!(window as any).__wasDrag) {
+            console.log('Setting showInput to true');
             setShowInput(true);
           }
           (window as any).__wasDrag = false;

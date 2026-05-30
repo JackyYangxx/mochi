@@ -18,6 +18,12 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
   const prevTodosRef = React.useRef<Todo[]>([]);
 
   React.useEffect(() => {
+    if (pendingSortRef.current && sortedIds.length > 0) {
+      pendingSortRef.current = false;
+    }
+  }, [sortedIds]);
+
+  React.useEffect(() => {
     // Detect which todo just got completed
     const newlyCompleted = todos.find(t => t.isCompleted &&
       !prevTodosRef.current.find(pt => pt.id === t.id)?.isCompleted);
@@ -25,27 +31,24 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
     if (newlyCompleted && !pendingSortRef.current) {
       pendingSortRef.current = true;
       // Trigger animation for the newly completed todo
-      setAnimatingIds(prev => new Set(prev).add(newlyCompleted.id));
+      const todoId = newlyCompleted.id;
+      setAnimatingIds(prev => new Set(prev).add(todoId));
+      // Sort after a delay - clear animation BEFORE sort
       setTimeout(() => {
-        setSortedIds(todos.filter(t => !t.isCompleted).map(t => t.id).concat(todos.filter(t => t.isCompleted).map(t => t.id)));
-        pendingSortRef.current = false;
+        // Clear animation first with a unique key to force update
+        setAnimatingIds(new Set());
+        // Then sort after animation clears
+        setTimeout(() => {
+          setSortedIds(todos.filter(t => !t.isCompleted).map(t => t.id).concat(todos.filter(t => t.isCompleted).map(t => t.id)));
+          pendingSortRef.current = false;
+        }, 50);
       }, 600);
-    } else if (!todos.some(t => t.isCompleted)) {
-      setSortedIds(todos.map(t => t.id));
+    } else if (!todos.some(t => t.isCompleted) && sortedIds.length > 0) {
+      setSortedIds([]);
     }
 
     prevTodosRef.current = [...todos];
   }, [todos]);
-
-  // Clear animation flag after animation completes
-  React.useEffect(() => {
-    if (animatingIds.size > 0) {
-      const timer = setTimeout(() => {
-        setAnimatingIds(new Set());
-      }, 700);
-      return () => clearTimeout(timer);
-    }
-  }, [animatingIds]);
 
   if (todos.length === 0) {
     return (
@@ -59,19 +62,18 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
     ? sortedIds.map(id => todos.find(t => t.id === id)!).filter(Boolean)
     : todos;
 
+  const handleToggle = (id: string) => {
+    onToggle(id);
+  };
+
   return (
     <div className="todo-list">
       {orderedTodos.map((todo) => (
         <TodoItem
           key={todo.id}
-          todo={{
-            id: todo.id,
-            content: todo.content,
-            isCompleted: todo.isCompleted,
-            createdAt: todo.createdAt,
-            showAnimation: animatingIds.has(todo.id),
-          }}
-          onToggle={onToggle}
+          todo={todo}
+          shouldAnimate={animatingIds.has(todo.id)}
+          onToggle={handleToggle}
           onDelete={onDelete}
           onEdit={onEdit}
         />

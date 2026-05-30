@@ -1,26 +1,44 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import './TodoItem.css';
-import ConfirmModal from './ConfirmModal/ConfirmModal';
 
 export interface TodoItemData {
   id: string;
   content: string;
   isCompleted: boolean;
   createdAt: string;
-  showAnimation?: boolean;
 }
 
 interface TodoItemProps {
   todo: TodoItemData;
+  shouldAnimate?: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, content: string) => void;
 }
 
-export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
+function TodoItemInner({ todo, shouldAnimate, onToggle, onDelete, onEdit }: TodoItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
   const checkboxRef = useRef<HTMLDivElement>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const hasAnimatedRef = useRef<Record<string, boolean>>({});
+  // Reset when todo becomes completed
+  const wasCompletedRef = useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    // Reset animation state when todo becomes completed (transition from false to true)
+    if (todo.isCompleted && !wasCompletedRef.current[todo.id]) {
+      hasAnimatedRef.current[todo.id] = false;
+      wasCompletedRef.current[todo.id] = true;
+    } else if (!todo.isCompleted) {
+      wasCompletedRef.current[todo.id] = false;
+    }
+  }, [todo.id, todo.isCompleted]);
+
+  useEffect(() => {
+    if (shouldAnimate && !hasAnimatedRef.current[todo.id]) {
+      hasAnimatedRef.current[todo.id] = true;
+      triggerCompletionAnimation();
+    }
+  }, [shouldAnimate, todo.id]);
 
   function triggerCompletionAnimation() {
     if (!itemRef.current || !checkboxRef.current) return;
@@ -28,7 +46,6 @@ export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemP
     const checkbox = checkboxRef.current;
     const colors = ['#7c3aed', '#ec4899', '#8b5cf6', '#f472b6', '#a855f7'];
 
-    // Create particles
     const particleCount = 10;
     for (let i = 0; i < particleCount; i++) {
       const particle = document.createElement('span');
@@ -41,17 +58,9 @@ export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemP
       particle.style.setProperty('--ty', `${Math.sin(rad) * distance}px`);
       checkbox.appendChild(particle);
 
-      // Remove particle after animation
       particle.addEventListener('animationend', () => particle.remove());
     }
   }
-
-  // Trigger animation when told to by TodoList
-  useEffect(() => {
-    if ((todo as any).showAnimation) {
-      triggerCompletionAnimation();
-    }
-  }, [(todo as any).showAnimation]);
 
   return (
     <div className={`todo-item ${todo.isCompleted ? 'completed' : ''}`} ref={itemRef}>
@@ -63,7 +72,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemP
         )}
       </div>
       <div className="todo-content">
-        <span className="todo-text">{todo.content}</span>
+        <span className="todo-text" title={todo.content}>{todo.content}</span>
         <span className="todo-date">{new Date(todo.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
       </div>
       <button
@@ -83,24 +92,14 @@ export default function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemP
         className="todo-delete"
         onClick={(e) => {
           e.stopPropagation();
-          setShowDeleteConfirm(true);
+          onDelete(todo.id);
         }}
         aria-label="Delete"
       >
         ×
       </button>
-      <ConfirmModal
-        visible={showDeleteConfirm}
-        title="删除确认"
-        message="确定要删除该待办事项吗？"
-        confirmText="删除"
-        cancelText="取消"
-        onConfirm={() => {
-          setShowDeleteConfirm(false);
-          onDelete(todo.id);
-        }}
-        onCancel={() => setShowDeleteConfirm(false)}
-      />
     </div>
   );
 }
+
+export default React.memo(TodoItemInner);

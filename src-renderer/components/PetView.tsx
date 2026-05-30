@@ -34,6 +34,7 @@ export default function PetView({
   }, []);
 
   const handleClick = useCallback(() => {
+    console.log('PetView clicked, onPetClick:', !!onPetClick);
     onPetClick?.();
   }, [onPetClick]);
 

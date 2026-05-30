@@ -38,6 +38,9 @@
   height: 128px;
   object-fit: contain;
   image-rendering: auto;
+}
+
+.pet-image img {
   pointer-events: none;
 }
 

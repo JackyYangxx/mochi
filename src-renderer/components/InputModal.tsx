@@ -22,9 +22,9 @@ export default function InputModal({ initialValue = '', onAdd, onEdit, onClose }
     const trimmed = text.trim();
     if (!trimmed) return;
     if (onEdit) {
-      onEdit(trimmed.length > 500 ? trimmed.slice(0, 500) : trimmed);
+      onEdit(trimmed);
     } else {
-      onAdd(trimmed.length > 500 ? trimmed.slice(0, 500) : trimmed);
+      onAdd(trimmed);
     }
     onClose();
   };
@@ -40,7 +40,7 @@ export default function InputModal({ initialValue = '', onAdd, onEdit, onClose }
   const handleTranscript = (transcribed: string) => {
     setText((prev) => {
       const newText = prev ? `${prev} ${transcribed}` : transcribed;
-      return newText.length > 500 ? newText.slice(0, 500) : newText;
+      return newText;
     });
   };
 
@@ -63,7 +63,6 @@ export default function InputModal({ initialValue = '', onAdd, onEdit, onClose }
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            maxLength={500}
           />
           <VoiceButton onTranscript={handleTranscript} />
         </div>
