@@ -6,6 +6,7 @@ export interface TodoItemData {
   content: string;
   isCompleted: boolean;
   createdAt: string;
+  parentId?: string | null;
 }
 
 interface TodoItemProps {
@@ -157,7 +158,7 @@ function TodoItemInner({ todo, children, isExpanded, shouldAnimate, onToggle, on
             <TodoItemInner
               key={child.id}
               todo={child}
-              onToggle={onDeleteChild ? (id) => onToggle(id) : onToggle}
+              onToggle={onToggle}
               onDelete={onDeleteChild || onDelete}
               onEdit={onEdit}
             />
