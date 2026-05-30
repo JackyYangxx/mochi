@@ -9,13 +9,19 @@ interface TodoListProps {
   onDelete: (id: string) => void;
   onEdit: (id: string, content: string) => void;
   onReorder?: (ids: string[]) => void;
+  onAddChild?: (parentId: string, content: string) => void;
+  onDeleteChild?: (parentId: string, childId: string) => void;
 }
 
-export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, onEdit, onAddChild, onDeleteChild }: TodoListProps) {
   const [sortedIds, setSortedIds] = React.useState<string[]>([]);
   const [animatingIds, setAnimatingIds] = React.useState<Set<string>>(new Set());
+  const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
   const pendingSortRef = React.useRef(false);
   const prevTodosRef = React.useRef<Todo[]>([]);
+
+  const getChildren = (parentId: string) => todos.filter(t => t.parentId === parentId);
+  const getTopLevelTodos = () => todos.filter(t => !t.parentId);
 
   React.useEffect(() => {
     if (pendingSortRef.current && sortedIds.length > 0) {
@@ -68,16 +74,34 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
 
   return (
     <div className="todo-list">
-      {orderedTodos.map((todo) => (
-        <TodoItem
-          key={todo.id}
-          todo={todo}
-          shouldAnimate={animatingIds.has(todo.id)}
-          onToggle={handleToggle}
-          onDelete={onDelete}
-          onEdit={onEdit}
-        />
-      ))}
+      {getTopLevelTodos().map(todo => {
+        const children = getChildren(todo.id);
+        return (
+          <TodoItem
+            key={todo.id}
+            todo={todo}
+            children={children}
+            isExpanded={expandedIds.has(todo.id)}
+            shouldAnimate={animatingIds.has(todo.id)}
+            onToggle={handleToggle}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onToggleExpand={() => {
+              setExpandedIds(prev => {
+                const next = new Set(prev);
+                if (next.has(todo.id)) {
+                  next.delete(todo.id);
+                } else {
+                  next.add(todo.id);
+                }
+                return next;
+              });
+            }}
+            onAddChild={onAddChild ? (content) => onAddChild(todo.id, content) : undefined}
+            onDeleteChild={onDeleteChild ? (childId) => onDeleteChild(todo.id, childId) : undefined}
+          />
+        );
+      })}
     </div>
   );
 }
