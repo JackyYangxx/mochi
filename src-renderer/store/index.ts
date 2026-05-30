@@ -8,6 +8,7 @@ export interface Todo {
   updatedAt: string;
   completedAt: string | null;
   isCompleted: boolean;
+  parentId: string | null;
 }
 
 interface PetImages {

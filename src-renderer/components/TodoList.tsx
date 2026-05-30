@@ -59,7 +59,7 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit }: TodoList
   }
 
   const orderedTodos = sortedIds.length > 0
-    ? sortedIds.map(id => todos.find(t => t.id === id)!).filter(Boolean)
+    ? [...sortedIds.map(id => todos.find(t => t.id === id)).filter(Boolean), ...todos.filter(t => !sortedIds.includes(t.id))]
     : todos;
 
   const handleToggle = (id: string) => {
