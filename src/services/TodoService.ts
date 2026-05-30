@@ -9,6 +9,7 @@ export interface Todo {
   updatedAt: string;
   completedAt: string | null;
   isCompleted: boolean;
+  parentId: string | null;
 }
 
 interface TodoRow {
@@ -19,6 +20,7 @@ interface TodoRow {
   updated_at: string;
   completed_at: string | null;
   is_completed: number;
+  parent_id: string | null;
 }
 
 function rowToTodo(row: TodoRow): Todo {
@@ -30,11 +32,12 @@ function rowToTodo(row: TodoRow): Todo {
     updatedAt: row.updated_at,
     completedAt: row.completed_at,
     isCompleted: row.is_completed === 1,
+    parentId: row.parent_id,
   };
 }
 
 export class TodoService {
-  add(input: { content: string }): Todo {
+  add(input: { content: string; parentId?: string }): Todo {
     const db = getDb();
     const content = input.content.trim();
     if (!content) {
@@ -43,15 +46,22 @@ export class TodoService {
     const id = uuidv4();
     const now = new Date().toISOString();
 
-    const maxSort = db
-      .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM todos')
-      .get() as { next: number };
+    let maxSort: number;
+    if (input.parentId) {
+      const result = db
+        .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM todos WHERE parent_id = ?')
+        .get(input.parentId) as { next: number };
+      maxSort = result.next;
+    } else {
+      const result = db
+        .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM todos WHERE parent_id IS NULL')
+        .get() as { next: number };
+      maxSort = result.next;
+    }
 
-    db
-      .prepare(
-        'INSERT INTO todos (id, content, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-      )
-      .run(id, content, maxSort.next, now, now);
+    db.prepare(
+      'INSERT INTO todos (id, content, sort_order, created_at, updated_at, parent_id) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, content, maxSort, now, now, input.parentId || null);
 
     return rowToTodo(
       db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow
@@ -71,12 +81,23 @@ export class TodoService {
     const row = db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow | undefined;
     if (!row) throw new Error('Todo not found');
 
+    if (row.is_completed === 0) {
+      const subtasks = db
+        .prepare('SELECT * FROM todos WHERE parent_id = ?')
+        .all(id) as TodoRow[];
+      if (subtasks.length > 0) {
+        const allCompleted = subtasks.every(s => s.is_completed === 1);
+        if (!allCompleted) {
+          throw new Error('Cannot complete parent todo until all subtasks are completed');
+        }
+      }
+    }
+
     const now = new Date().toISOString();
     const newCompleted = row.is_completed === 1 ? 0 : 1;
     const completedAt = newCompleted === 1 ? now : null;
 
-    db
-      .prepare('UPDATE todos SET is_completed = ?, completed_at = ?, updated_at = ? WHERE id = ?')
+    db.prepare('UPDATE todos SET is_completed = ?, completed_at = ?, updated_at = ? WHERE id = ?')
       .run(newCompleted, completedAt, now, id);
 
     return rowToTodo(
@@ -86,7 +107,11 @@ export class TodoService {
 
   delete(id: string): void {
     const db = getDb();
-    db.prepare('DELETE FROM todos WHERE id = ?').run(id);
+    const transaction = db.transaction(() => {
+      db.prepare('DELETE FROM todos WHERE parent_id = ?').run(id);
+      db.prepare('DELETE FROM todos WHERE id = ?').run(id);
+    });
+    transaction();
   }
 
   update(id: string, content: string): Todo {
