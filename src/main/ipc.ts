@@ -37,6 +37,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('todos:toggle', (_event, id: string) => todoService.toggle(id));
   ipcMain.handle('todos:delete', (_event, id: string) => todoService.delete(id));
   ipcMain.handle('todos:update', (_event, id: string, content: string) => todoService.update(id, content));
+  ipcMain.handle('todos:updateNotes', (_event, id: string, notes: string) => todoService.updateNotes(id, notes));
   ipcMain.handle('todos:search', (_event, query: string) => todoService.search(query));
   ipcMain.handle('todos:updateSortOrder', (_event, ids: string[]) => todoService.updateSortOrder(ids));
 

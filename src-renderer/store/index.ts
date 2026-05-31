@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export interface Todo {
   id: string;
   content: string;
+  notes: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -31,6 +32,7 @@ interface TodoStore {
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
   updateTodo: (id: string, content: string) => void;
+  updateTodoNotes: (id: string, notes: string) => void;
   updateSortOrder: (ids: string[]) => void;
   setSearchQuery: (query: string) => void;
   setShowInput: (show: boolean) => void;
@@ -62,6 +64,10 @@ export const useStore = create<TodoStore>((set) => ({
   updateTodo: (id, content) =>
     set((s) => ({
       todos: s.todos.map((t) => (t.id === id ? { ...t, content, updatedAt: new Date().toISOString() } : t)),
+    })),
+  updateTodoNotes: (id, notes) =>
+    set((s) => ({
+      todos: s.todos.map((t) => (t.id === id ? { ...t, notes, updatedAt: new Date().toISOString() } : t)),
     })),
   updateSortOrder: (ids) =>
     set((s) => ({

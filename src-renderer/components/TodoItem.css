@@ -140,6 +140,30 @@
   color: #6366f1;
 }
 
+.todo-detail {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.todo-item:hover .todo-detail {
+  opacity: 1;
+}
+
+.todo-detail:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+
 /* Completion animation particles */
 .todo-particle {
   position: absolute;
@@ -164,21 +188,6 @@
   100% {
     opacity: 0;
     transform: translate(calc(var(--tx) * 1.5), calc(var(--ty) * 1.5)) scale(0);
-  }
-}
-
-.todo-item.sorting {
-  animation: sort-slide 0.4s ease-out;
-}
-
-@keyframes sort-slide {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

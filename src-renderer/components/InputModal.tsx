@@ -11,11 +11,11 @@ interface InputModalProps {
 
 export default function InputModal({ initialValue = '', onAdd, onEdit, onClose }: InputModalProps) {
   const [text, setText] = useState(initialValue);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
+    textareaRef.current?.focus();
+    textareaRef.current?.select();
   }, []);
 
   const handleSubmit = () => {
@@ -29,8 +29,9 @@ export default function InputModal({ initialValue = '', onAdd, onEdit, onClose }
     onClose();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       handleSubmit();
     } else if (e.key === 'Escape') {
       onClose();
@@ -55,9 +56,8 @@ export default function InputModal({ initialValue = '', onAdd, onEdit, onClose }
       </button>
       <div className="input-modal" onClick={(e) => e.stopPropagation()}>
         <div className="input-modal-row">
-          <input
-            ref={inputRef}
-            type="text"
+          <textarea
+            ref={textareaRef}
             className="input-modal-input"
             placeholder="输入待办事项..."
             value={text}

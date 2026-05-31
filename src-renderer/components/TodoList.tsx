@@ -8,19 +8,16 @@ interface TodoListProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, content: string) => void;
+  onDetail?: (todo: { id: string; content: string; notes: string | null }) => void;
   onReorder?: (ids: string[]) => void;
-  onRequestAddChild?: (parentId: string) => void;  // CHANGED: triggers global modal
+  onRequestAddChild?: (parentId: string) => void;
   onDeleteChild?: (parentId: string, childId: string) => void;
 }
 
-export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestAddChild, onDeleteChild }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, onEdit, onDetail, onRequestAddChild, onDeleteChild }: TodoListProps) {
   const [sortedIds, setSortedIds] = React.useState<string[]>([]);
-  const [animatingIds, setAnimatingIds] = React.useState<Set<string>>(new Set());
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
-  const [childSortKeys, setChildSortKeys] = React.useState<Record<string, number>>({}); // Track child sort version per parent
-  const animatingChildIdsRef = React.useRef<Set<string>>(new Set());
-  const [, forceRenderChild] = React.useState(0);
-  const pendingSortRef = React.useRef(false);
+  const [childSortKeys, setChildSortKeys] = React.useState<Record<string, number>>({});
   const pendingSortTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const childSortTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevTopLevelRef = React.useRef<Todo[]>([]);
@@ -31,72 +28,48 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestA
   const getTopLevelTodos = () => todos.filter(t => !t.parentId);
 
   React.useEffect(() => {
-    if (pendingSortRef.current && sortedIds.length > 0) {
-      pendingSortRef.current = false;
-    }
-  }, [sortedIds]);
-
-  // Cleanup timers on unmount
-  React.useEffect(() => {
     return () => {
       if (pendingSortTimerRef.current) clearTimeout(pendingSortTimerRef.current);
       if (childSortTimerRef.current) clearTimeout(childSortTimerRef.current);
     };
   }, []);
 
-  // Detect top-level todo completion change and sort
   const topLevelTodos = React.useMemo(() => todos.filter(t => !t.parentId), [todos]);
-  React.useEffect(() => {
-    // Snapshot BEFORE detection so state updates don't cause re-detection
+
+  const prevTopLevelSnap = prevTopLevelRef.current;
+  const completionChanged = prevTopLevelSnap.length > 0 && topLevelTodos.some(t => {
+    const prev = prevTopLevelSnap.find(p => p.id === t.id);
+    return prev && prev.isCompleted !== t.isCompleted;
+  });
+
+  // Top-level: detect completion change, delay sort, then apply
+  React.useLayoutEffect(() => {
     const prevTopLevel = prevTopLevelRef.current;
     prevTopLevelRef.current = [...topLevelTodos];
 
-    const newlyCompleted = topLevelTodos.find(t => t.isCompleted &&
-      !prevTopLevel.find(pt => pt.id === t.id)?.isCompleted);
-    const newlyUncompleted = topLevelTodos.find(t => !t.isCompleted &&
-      prevTopLevel.find(pt => pt.id === t.id)?.isCompleted);
+    const changed = topLevelTodos.some(t => {
+      const prev = prevTopLevel.find(pt => pt.id === t.id);
+      return prev && prev.isCompleted !== t.isCompleted;
+    });
 
-    if ((newlyCompleted || newlyUncompleted) && !pendingSortRef.current) {
-      pendingSortRef.current = true;
-      const todoId = (newlyCompleted || newlyUncompleted)!.id;
-      setAnimatingIds(prev => new Set(prev).add(todoId));
-      pendingSortTimerRef.current = setTimeout(() => {
-        setAnimatingIds(new Set());
-        pendingSortTimerRef.current = setTimeout(() => {
-          const topLevel = todos.filter(t => !t.parentId);
-          const sorted = topLevel.filter(t => !t.isCompleted).map(t => t.id)
-            .concat(topLevel.filter(t => t.isCompleted).map(t => t.id));
-          setSortedIds(sorted);
-          pendingSortRef.current = false;
-          pendingSortTimerRef.current = null;
-        }, 50);
-      }, 650);
-    } else if ((newlyCompleted || newlyUncompleted) && pendingSortRef.current) {
+    if (changed) {
       if (pendingSortTimerRef.current) {
         clearTimeout(pendingSortTimerRef.current);
-        pendingSortTimerRef.current = null;
       }
-      const todoId = (newlyCompleted || newlyUncompleted)!.id;
-      setAnimatingIds(prev => new Set(prev).add(todoId));
       pendingSortTimerRef.current = setTimeout(() => {
-        setAnimatingIds(new Set());
-        pendingSortTimerRef.current = setTimeout(() => {
-          const topLevel = todos.filter(t => !t.parentId);
-          const sorted = topLevel.filter(t => !t.isCompleted).map(t => t.id)
-            .concat(topLevel.filter(t => t.isCompleted).map(t => t.id));
-          setSortedIds(sorted);
-          pendingSortRef.current = false;
-          pendingSortTimerRef.current = null;
-        }, 50);
+        const topLevel = todos.filter(t => !t.parentId);
+        const sorted = topLevel.filter(t => !t.isCompleted).map(t => t.id)
+          .concat(topLevel.filter(t => t.isCompleted).map(t => t.id));
+        setSortedIds(sorted);
+        pendingSortTimerRef.current = null;
       }, 650);
     } else if (!topLevelTodos.some(t => t.isCompleted) && sortedIds.length > 0) {
       setSortedIds([]);
     }
   }, [todos]);
 
-  // Detect child todo completion change and trigger delayed sort
+  // Child: detect completion change, auto-toggle parent, delay child re-sort
   React.useEffect(() => {
-    // Snapshot BEFORE detection so forceRenderChild re-runs don't re-detect
     const prevChildren = prevChildRef.current;
     prevChildRef.current = [...todos];
 
@@ -113,7 +86,6 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestA
       const childId = (newlyCompletedChild || newlyUncompletedChild)!.id;
       const parentId = (newlyCompletedChild || newlyUncompletedChild)!.parentId;
 
-      // Skip if this child was already processed (prevents re-detection from onToggle re-renders)
       if (lastProcessedChildRef.current === childId) {
         lastProcessedChildRef.current = null;
         return;
@@ -121,7 +93,6 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestA
       lastProcessedChildRef.current = childId;
 
       if (parentId) {
-        // Auto-complete parent when all children are completed
         if (newlyCompletedChild) {
           const siblings = todos.filter(t => t.parentId === parentId);
           const allCompleted = siblings.length > 0 && siblings.every(t => t.isCompleted);
@@ -131,7 +102,6 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestA
           }
         }
 
-        // Auto-uncomplete parent when a child is uncompleted
         if (newlyUncompletedChild) {
           const parent = todos.find(t => t.id === parentId);
           if (parent && parent.isCompleted) {
@@ -141,20 +111,10 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestA
 
         if (childSortTimerRef.current) {
           clearTimeout(childSortTimerRef.current);
-          childSortTimerRef.current = null;
         }
-        // Use ref for synchronous tracking so sort code sees it on current render
-        animatingChildIdsRef.current = new Set(animatingChildIdsRef.current).add(childId);
-        forceRenderChild(n => n + 1);
         childSortTimerRef.current = setTimeout(() => {
-          childSortTimerRef.current = setTimeout(() => {
-            const next = new Set(animatingChildIdsRef.current);
-            next.delete(childId);
-            animatingChildIdsRef.current = next;
-            setChildSortKeys(prev => ({ ...prev, [parentId]: (prev[parentId] || 0) + 1 }));
-            forceRenderChild(n => n + 1);
-            childSortTimerRef.current = null;
-          }, 50);
+          setChildSortKeys(prev => ({ ...prev, [parentId]: (prev[parentId] || 0) + 1 }));
+          childSortTimerRef.current = null;
         }, 650);
       }
     }
@@ -172,49 +132,42 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestA
     onToggle(id);
   };
 
-  // Build top-level todos, respecting sorted order when available
-  const topLevelIds = getTopLevelTodos().map(t => t.id);
-  const newTopLevelIds = topLevelIds.filter(id => !sortedIds.includes(id));
-  const orderedTopLevelIds = sortedIds.length > 0
-    ? sortedIds.filter(id => topLevelIds.includes(id)).concat(newTopLevelIds)
-    : topLevelIds;
+  const topLevel = getTopLevelTodos();
+  let orderedTopLevelIds: string[];
+  if (completionChanged) {
+    // Just detected a change: keep current visual order (no jump)
+    if (sortedIds.length > 0) {
+      const topLevelIds = new Set(topLevel.map(t => t.id));
+      const inSort = sortedIds.filter(id => topLevelIds.has(id));
+      const notInSort = topLevel.map(t => t.id).filter(id => !sortedIds.includes(id));
+      orderedTopLevelIds = inSort.concat(notInSort);
+    } else {
+      orderedTopLevelIds = topLevel.map(t => t.id);
+    }
+  } else if (sortedIds.length > 0) {
+    const topLevelIds = new Set(topLevel.map(t => t.id));
+    const inSort = sortedIds.filter(id => topLevelIds.has(id));
+    const notInSort = topLevel.map(t => t.id).filter(id => !sortedIds.includes(id));
+    orderedTopLevelIds = inSort.concat(notInSort);
+  } else {
+    const incomplete = topLevel.filter(t => !t.isCompleted);
+    const completed = topLevel.filter(t => t.isCompleted);
+    orderedTopLevelIds = incomplete.map(t => t.id).concat(completed.map(t => t.id));
+  }
 
   return (
     <div className="todo-list">
       {orderedTopLevelIds.map(id => {
         const todo = todos.find(t => t.id === id)!;
         const children = getChildren(todo.id);
-        // Sort children: incomplete first, then completed, then by sortOrder
-        // Animating children stay at original indices during particle effect
-        const childOriginalIndices = new Map(children.map((c, i) => [c.id, i]));
-        const hasAnimating = children.some(c => animatingChildIdsRef.current.has(c.id));
         const childCompare = (a: typeof children[0], b: typeof children[0]) => {
           if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1;
           if (a.isCompleted) {
-            // Among completed: earliest completed first (oldest moves up, newest to bottom)
             return (a.completedAt || '').localeCompare(b.completedAt || '');
           }
           return a.sortOrder - b.sortOrder;
         };
-        let sortedChildren: typeof children;
-        if (hasAnimating) {
-          const nonAnimating = children.filter(c => !animatingChildIdsRef.current.has(c.id));
-          const sortedNonAnimating = [...nonAnimating].sort(childCompare);
-          sortedChildren = new Array(children.length);
-          for (const c of children) {
-            if (animatingChildIdsRef.current.has(c.id)) {
-              sortedChildren[childOriginalIndices.get(c.id)!] = c;
-            }
-          }
-          let sortIdx = 0;
-          for (let i = 0; i < sortedChildren.length; i++) {
-            if (!sortedChildren[i]) {
-              sortedChildren[i] = sortedNonAnimating[sortIdx++];
-            }
-          }
-        } else {
-          sortedChildren = [...children].sort(childCompare);
-        }
+        const sortedChildren = [...children].sort(childCompare);
         return (
           <TodoItem
             key={todo.id}
@@ -222,10 +175,10 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onRequestA
             children={sortedChildren}
             childSortKey={childSortKeys[todo.id]}
             isExpanded={expandedIds.has(todo.id)}
-            shouldAnimate={animatingIds.has(todo.id)}
             onToggle={handleToggle}
             onDelete={onDelete}
             onEdit={onEdit}
+            onDetail={onDetail ? (t) => onDetail(t) : undefined}
             onToggleExpand={() => {
               setExpandedIds(prev => {
                 const next = new Set(prev);

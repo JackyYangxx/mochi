@@ -4,6 +4,7 @@ import './TodoItem.css';
 export interface TodoItemData {
   id: string;
   content: string;
+  notes?: string | null;
   isCompleted: boolean;
   createdAt: string;
   completedAt?: string | null;
@@ -12,25 +13,24 @@ export interface TodoItemData {
 
 interface TodoItemProps {
   todo: TodoItemData;
-  children?: TodoItemData[];      // NEW: subtasks
-  childSortKey?: number;          // NEW: triggers child re-sort
-  isExpanded?: boolean;           // NEW: expand state
-  shouldAnimate?: boolean;
+  children?: TodoItemData[];
+  childSortKey?: number;
+  isExpanded?: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, content: string) => void;
-  onToggleExpand?: () => void;    // NEW
-  onRequestAddChild?: (parentId: string) => void;  // NEW: triggers global modal
-  onDeleteChild?: (id: string) => void;    // NEW
+  onDetail?: (todo: TodoItemData) => void;
+  onToggleExpand?: () => void;
+  onRequestAddChild?: (parentId: string) => void;
+  onDeleteChild?: (id: string) => void;
 }
 
-function TodoItemInner({ todo, children, childSortKey, isExpanded, shouldAnimate, onToggle, onDelete, onEdit, onToggleExpand, onRequestAddChild, onDeleteChild }: TodoItemProps) {
+function TodoItemInner({ todo, children, childSortKey, isExpanded, onToggle, onDelete, onEdit, onDetail, onToggleExpand, onRequestAddChild, onDeleteChild }: TodoItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
   const checkboxRef = useRef<HTMLDivElement>(null);
   const wasCompletedRef = useRef<boolean>(todo.isCompleted);
 
   useEffect(() => {
-    // Trigger animation when completion state changes
     if (wasCompletedRef.current !== todo.isCompleted) {
       wasCompletedRef.current = todo.isCompleted;
       if (itemRef.current && checkboxRef.current) {
@@ -77,6 +77,24 @@ function TodoItemInner({ todo, children, childSortKey, isExpanded, shouldAnimate
           <span className="todo-text" title={todo.content}>{todo.content}</span>
           <span className="todo-date">{new Date(todo.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
         </div>
+        {onDetail && (
+          <button
+            className="todo-detail"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDetail(todo);
+            }}
+            aria-label="Detail"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </button>
+        )}
         <button
           className="todo-edit"
           onClick={(e) => {
