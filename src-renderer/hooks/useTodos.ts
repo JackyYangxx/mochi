@@ -8,6 +8,7 @@ declare global {
       addTodo: (input: { content: string }) => Promise<any>;
       toggleTodo: (id: string) => Promise<any>;
       updateTodo: (id: string, content: string) => Promise<any>;
+      updateTodoNotes: (id: string, notes: string) => Promise<any>;
       deleteTodo: (id: string) => Promise<void>;
       updateSortOrder: (ids: string[]) => Promise<void>;
       searchTodos: (query: string) => Promise<any[]>;
@@ -26,7 +27,7 @@ declare global {
 }
 
 export function useTodos() {
-  const { todos, searchQuery, setTodos, addTodo, toggleTodo, deleteTodo, updateTodo, setShowInput } = useStore();
+  const { todos, searchQuery, setTodos, addTodo, toggleTodo, deleteTodo, updateTodo, updateTodoNotes, setShowInput } = useStore();
   const [isLoading, setIsLoading] = useState(false);
 
   const loadTodos = useCallback(async () => {
@@ -97,6 +98,33 @@ export function useTodos() {
     updateTodo(id, content);
   };
 
+  const handleUpdateNotes = async (id: string, notes: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
+    await window.todoAPI.updateTodoNotes(id, notes);
+    updateTodoNotes(id, notes);
+  };
+
+  const handleAddChild = async (parentId: string, content: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
+    const todo = await window.todoAPI.addTodo({ content, parentId });
+    addTodo(todo);
+  };
+
+  const handleDeleteChild = async (parentId: string, childId: string) => {
+    if (!window.todoAPI) {
+      console.error('[useTodos] todoAPI not available');
+      return;
+    }
+    await window.todoAPI.deleteTodo(childId);
+    deleteTodo(childId);
+  };
+
   const filteredTodos = searchQuery
     ? todos.filter((t) => t.content.toLowerCase().includes(searchQuery.toLowerCase()))
     : todos;
@@ -107,6 +135,9 @@ export function useTodos() {
     handleToggle,
     handleDelete,
     handleUpdate,
+    handleUpdateNotes,
+    handleAddChild,
+    handleDeleteChild,
     loadTodos,
     isLoading,
   };

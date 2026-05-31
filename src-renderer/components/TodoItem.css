@@ -52,6 +52,18 @@
   color: white;
 }
 
+.todo-checkbox.has-children {
+  cursor: pointer;
+}
+
+.todo-content.clickable {
+  cursor: pointer;
+}
+
+.todo-content.clickable:hover .todo-text {
+  color: #7c3aed;
+}
+
 .todo-content {
   flex: 1;
   min-width: 0;
@@ -128,6 +140,30 @@
   color: #6366f1;
 }
 
+.todo-detail {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.todo-item:hover .todo-detail {
+  opacity: 1;
+}
+
+.todo-detail:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+
 /* Completion animation particles */
 .todo-particle {
   position: absolute;
@@ -155,17 +191,67 @@
   }
 }
 
-.todo-item.sorting {
-  animation: sort-slide 0.4s ease-out;
+.todo-expand {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: #999;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@keyframes sort-slide {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.todo-expand:hover {
+  color: #333;
+}
+
+.todo-add-child {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 16px;
+  color: #999;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.todo-add-child:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.todo-add-child-form {
+  padding: 8px 0 8px 44px;
+}
+
+.todo-add-child-form input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.todo-add-child-form input:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+.todo-children {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  margin-left: 20px;
+  border-left: 1px solid #eee;
+  padding-left: 12px;
 }

@@ -34,6 +34,7 @@ const api = {
   addTodo: (input: { content: string }) => ipcRenderer.invoke('todos:add', input),
   toggleTodo: (id: string) => ipcRenderer.invoke('todos:toggle', id),
   updateTodo: (id: string, content: string) => ipcRenderer.invoke('todos:update', id, content),
+  updateTodoNotes: (id: string, notes: string) => ipcRenderer.invoke('todos:updateNotes', id, notes),
   deleteTodo: (id: string) => ipcRenderer.invoke('todos:delete', id),
   updateSortOrder: (ids: string[]) => ipcRenderer.invoke('todos:updateSortOrder', ids),
 

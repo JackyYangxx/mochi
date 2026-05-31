@@ -4,6 +4,7 @@ import { getDb } from '../database/connection';
 export interface Todo {
   id: string;
   content: string;
+  notes: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -15,6 +16,7 @@ export interface Todo {
 interface TodoRow {
   id: string;
   content: string;
+  notes: string | null;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -27,6 +29,7 @@ function rowToTodo(row: TodoRow): Todo {
   return {
     id: row.id,
     content: row.content,
+    notes: row.notes,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -123,6 +126,17 @@ export class TodoService {
     const trimmed = content.trim();
 
     db.prepare('UPDATE todos SET content = ?, updated_at = ? WHERE id = ?').run(trimmed, now, id);
+
+    return rowToTodo(db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow);
+  }
+
+  updateNotes(id: string, notes: string): Todo {
+    const db = getDb();
+    const row = db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow | undefined;
+    if (!row) throw new Error('Todo not found');
+
+    const now = new Date().toISOString();
+    db.prepare('UPDATE todos SET notes = ?, updated_at = ? WHERE id = ?').run(notes || null, now, id);
 
     return rowToTodo(db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow);
   }

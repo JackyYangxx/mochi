@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import PetView from './components/PetView';
 import TodoList from './components/TodoList';
 import InputModal from './components/InputModal';
+import TodoDetailModal from './components/TodoDetailModal';
 import SettingsPanel from './components/SettingsPanel';
 import { useStore } from './store';
 import { useTodos } from './hooks/useTodos';
@@ -12,12 +13,15 @@ export default function App() {
   const petImages = useStore((s) => s.petImages);
   const showInput = useStore((s) => s.showInput);
   const showSettings = useStore((s) => s.showSettings);
+  const addingSubtaskForId = useStore((s) => s.addingSubtaskForId);
   const setShowInput = useStore((s) => s.setShowInput);
   const setShowSettings = useStore((s) => s.setShowSettings);
+  const setAddingSubtaskForId = useStore((s) => s.setAddingSubtaskForId);
   const setPetState = useStore((s) => s.setPetState);
   const setPetImages = useStore((s) => s.setPetImages);
-  const { todos, handleAdd, handleToggle, handleDelete, handleUpdate } = useTodos();
+  const { todos, handleAdd, handleToggle, handleDelete, handleUpdate, handleUpdateNotes, handleAddChild, handleDeleteChild } = useTodos();
   const [editingTodo, setEditingTodo] = React.useState<{ id: string; content: string } | null>(null);
+  const [detailTodo, setDetailTodo] = React.useState<{ id: string; content: string; notes: string } | null>(null);
 
   // Windows drag handling
   const dragState = React.useRef<{ mouseX: number; mouseY: number; didDrag: boolean } | null>(null);
@@ -124,12 +128,21 @@ export default function App() {
           onToggle={handleToggle}
           onDelete={handleDelete}
           onEdit={(id, content) => setEditingTodo({ id, content })}
+          onDetail={(todo) => setDetailTodo({ id: todo.id, content: todo.content, notes: todo.notes || '' })}
+          onRequestAddChild={(parentId) => {
+            setAddingSubtaskForId(parentId);
+            setShowInput(true);
+          }}
+          onDeleteChild={handleDeleteChild}
         />
       </div>
       {showInput && (
         <InputModal
-          onAdd={handleAdd}
-          onClose={() => setShowInput(false)}
+          onAdd={addingSubtaskForId ? (content) => handleAddChild(addingSubtaskForId, content) : handleAdd}
+          onClose={() => {
+            setShowInput(false);
+            setAddingSubtaskForId(null);
+          }}
         />
       )}
       {editingTodo && (
@@ -146,6 +159,18 @@ export default function App() {
       {showSettings && (
         <SettingsPanel
           onClose={() => setShowSettings(false)}
+        />
+      )}
+      {detailTodo && (
+        <TodoDetailModal
+          todoId={detailTodo.id}
+          todoContent={detailTodo.content}
+          initialNotes={detailTodo.notes}
+          onSave={(notes) => {
+            handleUpdateNotes(detailTodo.id, notes);
+            setDetailTodo(null);
+          }}
+          onClose={() => setDetailTodo(null)}
         />
       )}
     </div>
