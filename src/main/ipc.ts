@@ -91,8 +91,16 @@ export function registerIpcHandlers(): void {
     if (!fs.existsSync(imagesDir)) {
       fs.mkdirSync(imagesDir, { recursive: true });
     }
+    const oldPath = settingsService.get(`petImage_${state}`);
+    if (oldPath) {
+      try {
+        fs.unlinkSync(oldPath);
+      } catch {
+        // ignore missing file
+      }
+    }
     const ext = path.extname(filePath);
-    const destFileName = `pet-${state}${ext}`;
+    const destFileName = `pet-${state}-${Date.now()}${ext}`;
     const destPath = path.join(imagesDir, destFileName);
     fs.copyFileSync(filePath, destPath);
     settingsService.set(`petImage_${state}`, destPath);

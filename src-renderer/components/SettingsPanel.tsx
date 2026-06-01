@@ -134,6 +134,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       }
     } catch (error) {
       console.error('Failed to upload pet image:', error);
+    } finally {
+      input.value = '';
     }
   };
 
