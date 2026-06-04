@@ -5,3 +5,4 @@ dist-renderer
 test*
 
 .DS_Store
+.worktrees/
