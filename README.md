@@ -1,164 +1,142 @@
-# Desktop Todo Agent
+# Desktop Todo
 
-桌面端待办事项管理工具，以宠物形态悬浮在桌面上，支持键盘/语音输入、全局快捷键、智能提醒和 IM 通知。
+桌面角落里蹲着的一只小宠物，提醒你今天还有什么没做完。
 
-## 功能特性
+点它说话，敲快捷键加待办，到点让 LLM 整理成清单推到飞书/钉钉。数据全在本地，API Key 加密存进 macOS Keychain。
 
-- **悬浮宠物窗口** - 透明窗口 + 宠物图标，点击触发输入
-- **语音输入** - 按住说话，自动转文字 (Web Speech API)
-- **全局快捷键** - `Cmd/Ctrl+Shift+T` 快速添加待办
-- **待办管理** - CRUD、搜索、过滤、完成/删除、子待办嵌套
-- **智能提醒** - LLM 生成摘要 + 行动建议，通过 IM CLI 发送
-- **每日报告** - 自动生成待办总结并发送至 IM
-- **数据持久化** - SQLite 本地存储
-- **开机自启** - 支持注册开机启动
-- **窗口记忆** - 自动保存和恢复窗口位置
+## 宠物窗口
 
-## 技术栈
+透明无边框窗口，常驻桌面。
 
-- **框架**: Electron 28 + React 18 + TypeScript
-- **构建**: Vite + electron-builder
-- **数据库**: SQLite (better-sqlite3)
-- **状态管理**: Zustand
-- **动画**: Anime.js
-- **语音识别**: Web Speech API
-- **LLM**: OpenAI API (或兼容 API)
-- **测试**: Vitest + Playwright
+- 三种状态：闲置 / 鼠标悬停活动 / 说话中（带脉冲动画）
+- 三个状态都能换上自己的 PNG / JPG / GIF 图
+- 大小三档：小 (80px) / 中 (128px) / 大 (192px)
+- 按住左键拖到任意位置，下次启动还在那里
+- 闲置状态可以显示提示气泡（比如"日报已生成"）
 
-## 快速开始
+## 怎么加待办
 
-### 安装依赖
+三种姿势：
+
+- **点宠物** —— 弹出输入框
+- **全局快捷键** `Cmd/Ctrl+Shift+T` —— 任何应用前台都能呼出
+- **按住语音按钮** —— 走 Chrome 的 Web Speech API，说完直接转文字
+
+输入框支持回车直接提交，ESC 关闭。
+
+## 待办管理
+
+- 增删改查、标记完成、搜索
+- **子待办嵌套**：父项下挂子项，删父项会级联删子项
+- 拖动排序，顺序写进数据库
+- 已完成的待办默认折叠，不占视觉空间
+- 详情弹窗里可以写备注
+
+## 提醒和日报
+
+设置每日提醒时间（支持多个），到点会：
+
+1. 读出当前所有未完成待办
+2. 调 LLM 生成摘要 + 下一步建议
+3. 通过你配置的 IM CLI 推到手机
+
+日报功能类似 —— 把当天完成的待办汇总成 Markdown 推过去。
+
+CLI 配置里有个 `{content}` 占位符，会作为**单个参数**传（不是拼到 shell），所以就算提醒内容里有空格、引号也不会出问题。`spawn` + 绝对路径校验是默认开启的。
+
+## 设置面板
+
+顶部 4 个 Tab 分页：
+
+| Tab | 内容 |
+|-----|------|
+| 外观 | 宠物大小、三个状态的自定义图片 |
+| 智能 | LLM 服务地址、模型、API Key（带显示/隐藏切换） |
+| 通知 | 每日提醒时间、IM CLI 路径与参数模板、日报保存目录 |
+| 系统 | 开机自启 |
+
+API Key 走 Electron `safeStorage`，在 macOS 上等于 Keychain，Windows 上走 DPAPI。
+
+## 安装运行
 
 ```bash
 pnpm install
-```
 
-### Apple Silicon Mac 需要重建 native 模块
-
-```bash
+# Apple Silicon Mac 必做：重建 SQLite native 模块
 npx @electron/rebuild -f -w better-sqlite3
-```
 
-### 开发模式
-
-```bash
 pnpm build && pnpm start
 ```
 
-应用会在桌面窗口中显示（悬浮宠物形态），全局快捷键 `CmdOrCtrl+Shift+T` 触发输入框。
+启动后会在桌面右下角看到宠物窗口。试用：点宠物 → 写条待办 → 试试快捷键。
 
-### 生产构建
+## 打包
 
 ```bash
+# macOS (当前平台)
 pnpm build
+
+# Windows x64
+pnpm build && pnpm electron-builder --win --x64 --dir
+cd release && zip -r Desktop-Todo-vX.X.X-win-x64.zip win-unpacked
 ```
 
-### 代码检查
+> 在 macOS 上交叉构建 Windows 时，最后一步用 Wine 调 rcedit 写 exe 版本信息会失败（"bad CPU type"），但 exe 本身可正常运行。最终发布建议在 Windows 机器上做最后一步。
 
-```bash
-pnpm lint        # ESLint 检查
-pnpm format      # Prettier 格式化
-```
+## 技术栈
 
-### 测试
-
-```bash
-pnpm test        # 单元测试 (Vitest)
-```
+- Electron 28 + React 18 + TypeScript
+- Vite (构建) · electron-builder (打包)
+- better-sqlite3 (本地存储)
+- Zustand (状态)
+- Anime.js (动画)
+- Web Speech API (语音)
+- OpenAI 兼容 API (LLM)
+- Vitest (单测) · Playwright (E2E)
 
 ## 项目结构
 
 ```
-desktop-todo-list/
-├── src/
-│   ├── main/           # Electron 主进程
-│   │   ├── index.ts    # 应用入口
-│   │   ├── ipc.ts      # IPC 处理器
-│   │   ├── window.ts   # 窗口管理
-│   │   ├── tray.ts     # 系统托盘
-│   │   └── shortcut.ts # 全局快捷键
-│   ├── services/       # 业务逻辑
-│   │   ├── TodoService.ts
-│   │   ├── ReminderService.ts
-│   │   ├── DailyReportService.ts
-│   │   ├── LLMService.ts
-│   │   ├── CLIExecutor.ts
-│   │   ├── KeyStore.ts
-│   │   └── SettingsService.ts
-│   ├── database/       # SQLite 数据库
-│   └── preload/        # 预加载脚本
-├── src-renderer/       # React 渲染进程
-│   ├── components/
-│   │   ├── TodoList.tsx      # 待办列表
-│   │   ├── TodoItem.tsx      # 待办项
-│   │   ├── InputModal.tsx    # 输入弹窗
-│   │   ├── TodoDetailModal.tsx # 待办详情
-│   │   ├── PetView.tsx       # 宠物视图
-│   │   ├── SettingsPanel.tsx # 设置面板
-│   │   ├── VoiceButton.tsx   # 语音按钮
-│   │   └── NetworkStatus.tsx # 网络状态
-│   ├── hooks/          # React hooks
-│   └── store/          # Zustand store
-├── release/            # 构建输出
-└── tests/              # 测试
+src/
+  main/             # Electron 主进程
+    index.ts        # 入口
+    window.ts       # 主窗口
+    settingsWindow.ts  # 设置窗口
+    tray.ts         # 系统托盘
+    shortcut.ts     # 全局快捷键
+    ipc.ts          # IPC 处理器
+  services/         # 业务逻辑
+    TodoService.ts
+    ReminderService.ts
+    DailyReportService.ts
+    LLMService.ts
+    CLIExecutor.ts
+    KeyStore.ts
+    SettingsService.ts
+  database/         # SQLite schema + 迁移
+  preload/          # 预加载脚本 (contextBridge)
+src-renderer/       # React 渲染进程
+  components/       # PetView / TodoList / SettingsPanel / ...
+  hooks/            # useTodos 等
+  store/            # Zustand store
+tests/
+  unit/             # Vitest
+  e2e/              # Playwright
+release/            # 构建产物
 ```
 
 ## IPC 通道
 
-| 通道 | 功能 |
+| 通道 | 说明 |
 |------|------|
 | `todos:getAll` | 获取所有待办 |
-| `todos:add` | 添加待办（支持 `parentId` 创建子待办） |
-| `todos:toggle` | 切换完成状态 |
-| `todos:update` | 更新待办内容/备注 |
-| `todos:delete` | 删除待办（级联删除子待办） |
-| `todos:reorder` | 重新排序待办 |
-| `settings:get` | 获取设置 |
-| `settings:set` | 保存设置 |
+| `todos:add` | 添加（支持 `parentId` 创建子待办） |
+| `todos:toggle` | 切换完成 |
+| `todos:update` | 更新内容/备注 |
+| `todos:delete` | 删除（级联子待办） |
+| `todos:reorder` | 重新排序 |
+| `settings:get` / `settings:set` | 读写设置 |
 | `trigger-input` | 全局快捷键触发输入 |
-
-## 配置说明
-
-### LLM API 配置
-
-在设置面板中配置：
-- Endpoint URL (如 `https://api.openai.com/v1`)
-- Model 名称 (如 `gpt-4`)
-- API Key (加密存储至 macOS Keychain)
-
-### IM CLI 配置
-
-配置用于发送提醒的 CLI 工具：
-- CLI 路径 (如 `/usr/local/bin/feishu`)
-- 参数模板 (如 `send --message "{content}"`)
-- `{content}` 占位符表示提醒内容
-
-### 每日提醒
-
-设置提醒时间，到达时间后自动：
-1. 读取未完成待办
-2. 调用 LLM 生成摘要和行动建议
-3. 调用配置的 IM CLI 发送消息
-
-## 安全特性
-
-- CLI 执行使用 `spawn` + 绝对路径校验
-- `{content}` 作为单个参数传递，防止命令注入
-- API Key 使用 Electron `safeStorage` 加密存储
-- Context Isolation 启用，Node 集成关闭
-
-## 开发指南
-
-### Windows 构建
-
-```bash
-pnpm electron-builder --win x64 --dir
-```
-
-打包后运行：
-```bash
-cd release && zip -r Desktop-Todo-vX.X.X-win-x64.zip win-unpacked
-```
 
 ## License
 

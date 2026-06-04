@@ -10,6 +10,21 @@
   position: relative;
 }
 
+.pet-size-small.pet-view {
+  width: 80px;
+  height: 80px;
+}
+
+.pet-size-medium.pet-view {
+  width: 128px;
+  height: 128px;
+}
+
+.pet-size-large.pet-view {
+  width: 192px;
+  height: 192px;
+}
+
 .pet-tips {
   position: absolute;
   top: -40px;
