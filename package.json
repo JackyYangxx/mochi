@@ -9,6 +9,7 @@
     "start": "electron dist/main/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
     "lint": "eslint src/ src-renderer/ tests/",
     "format": "prettier --write src/ src-renderer/ tests/"
   },
