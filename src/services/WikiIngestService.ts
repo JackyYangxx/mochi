@@ -175,24 +175,35 @@ export class WikiIngestService {
     return { pending, processing, failed, lastIngestedAt: lastRow?.enqueued_at ?? null };
   }
 
-  // Phase 4: re-enqueue every enabled source. Used by IPC handler `kb:rebuild`.
-  // Idempotent: removes any pending duplicates before re-enqueuing so a second
-  // call does not double-insert the same path.
+  // Phase 4: re-enqueue every .md file under every enabled source. Used by
+  // IPC handler `kb:rebuild`. Idempotent: removes any pending duplicates
+  // before re-enqueuing so a second call does not double-insert.
   async rebuildAll(): Promise<{ reEnqueued: number }> {
     const rows = this.db.prepare(`SELECT path FROM kb_sources WHERE enabled = 1`).all() as { path: string }[];
+    const files: string[] = [];
+    for (const r of rows) {
+      if (!fs.existsSync(r.path)) continue;
+      const walk = (d: string) => {
+        for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+          const p = path.join(d, entry.name);
+          if (entry.isDirectory()) walk(p);
+          else if (/\.(md|markdown|mdx)$/i.test(entry.name)) files.push(p);
+        }
+      };
+      try { walk(r.path); } catch (e) { log.warn(`[WikiIngest] rebuildAll: skipping unreadable source ${r.path}: ${(e as Error).message}`); }
+    }
     let n = 0;
     const tx = this.db.transaction((paths: string[]) => {
-      // Remove any pending duplicates so rebuildAll is idempotent
+      // Remove pending duplicates so rebuildAll is idempotent on retry.
       const del = this.db.prepare(`DELETE FROM kb_ingest_queue WHERE file_path = ? AND status = 'pending'`);
+      const ins = this.db.prepare(`INSERT INTO kb_ingest_queue (file_path) VALUES (?)`);
       for (const p of paths) {
         del.run(p);
-      }
-      for (const p of paths) {
-        this.enqueue(p);
+        ins.run(p);
         n++;
       }
     });
-    tx(rows.map(r => r.path));
+    tx(files);
     return { reEnqueued: n };
   }
 }

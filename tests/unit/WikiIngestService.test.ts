@@ -272,19 +272,33 @@ describe('WikiIngestService.statsAndRebuild', () => {
     expect(stats.lastIngestedAt).toBeNull();
   });
 
-  test('rebuildAll re-enqueues every enabled source', async () => {
-    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run('/dir1');
-    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run('/dir2');
-    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 0)`).run('/dir3-disabled');
+  test('rebuildAll re-enqueues every .md file under every enabled source', async () => {
+    // rebuildAll walks each source dir for .md files. Use real temp dirs.
+    const src1 = fs.mkdtempSync(path.join(tmpDir, 'src1-'));
+    const src2 = fs.mkdtempSync(path.join(tmpDir, 'src2-'));
+    const src3Disabled = fs.mkdtempSync(path.join(tmpDir, 'src3-'));
+    fs.writeFileSync(path.join(src1, 'a.md'), '# A');
+    fs.writeFileSync(path.join(src1, 'b.md'), '# B');
+    fs.writeFileSync(path.join(src2, 'c.md'), '# C');
+    fs.writeFileSync(path.join(src3Disabled, 'd.md'), '# D (disabled)');
+
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run(src1);
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run(src2);
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 0)`).run(src3Disabled);
+
     const result = await svc.rebuildAll();
-    expect(result.reEnqueued).toBe(2);
+    expect(result.reEnqueued).toBe(3); // 2 + 1, disabled source excluded
     const pending = db.prepare(`SELECT COUNT(*) as n FROM kb_ingest_queue WHERE status = 'pending'`).get() as { n: number };
-    expect(pending.n).toBe(2);
+    expect(pending.n).toBe(3);
   });
 
   test('rebuildAll is idempotent: calling twice does not double-insert pending rows', async () => {
-    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run('/dir1');
-    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run('/dir2');
+    const src1 = fs.mkdtempSync(path.join(tmpDir, 'src1-'));
+    const src2 = fs.mkdtempSync(path.join(tmpDir, 'src2-'));
+    fs.writeFileSync(path.join(src1, 'a.md'), '# A');
+    fs.writeFileSync(path.join(src2, 'b.md'), '# B');
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run(src1);
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run(src2);
     await svc.rebuildAll();
     await svc.rebuildAll();
     const pending = db.prepare(`SELECT COUNT(*) as n FROM kb_ingest_queue WHERE status = 'pending'`).get() as { n: number };

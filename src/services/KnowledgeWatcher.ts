@@ -36,7 +36,14 @@ export class KnowledgeWatcher {
   }
 
   async start(): Promise<void> {
-    if (!this.watcher) throw new Error('addDir() must be called before start()');
+    if (!this.watcher) {
+      // No source dirs were added — log and return instead of throwing so the
+      // app.whenReady() chain in index.ts doesn't abort on unhandled rejection.
+      // The Phase 4 wiring iterates enabled sources; an empty list is a valid
+      // first-run state (user hasn't added any sources yet).
+      log.info('[KnowledgeWatcher] No source dirs registered, skipping start');
+      return;
+    }
     // chokidar starts watching on .add() automatically; nothing to do
     log.info('[KnowledgeWatcher] Started');
   }
