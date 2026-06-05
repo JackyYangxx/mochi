@@ -34,6 +34,22 @@ class Database {
   close() {
     this._inner.close();
   }
+  // Minimal transaction wrapper: BEGIN / COMMIT / ROLLBACK. Mirrors the
+  // better-sqlite3 surface used by services (returns a callable that
+  // executes the body inside a transaction).
+  transaction(fn) {
+    return () => {
+      this._inner.exec('BEGIN');
+      try {
+        const result = fn();
+        this._inner.exec('COMMIT');
+        return result;
+      } catch (e) {
+        this._inner.exec('ROLLBACK');
+        throw e;
+      }
+    };
+  }
 }
 
 export default Database;
