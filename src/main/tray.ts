@@ -28,7 +28,7 @@ export function createTray(): Tray {
   console.log('[Tray] Icon created, isEmpty:', icon.isEmpty());
 
   tray = new Tray(icon);
-  tray.setToolTip('Desktop Todo');
+  tray.setToolTip('Mochi');
 
   const contextMenu = Menu.buildFromTemplate([
     {

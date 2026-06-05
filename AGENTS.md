@@ -1,8 +1,8 @@
-# Desktop Todo Agent — AGENTS.md
+# Mochi — AGENTS.md
 
 ## 项目概述
 
-Electron + React 桌面端待办工具，以宠物形态悬浮在桌面，支持语音输入、全局快捷键、智能提醒和 IM CLI 通知。
+**Mochi** 是一个 Electron + React 桌面端智能待办助手，以萌系宠物形态悬浮在桌面，支持语音输入、全局快捷键、智能提醒、IM CLI 推送和本地知识库。
 
 ## 技术栈
 
@@ -84,7 +84,7 @@ pnpm dev                     # 开发模式（Vite dev server + Electron）
 1. 修改 `package.json` 中的 `version` 字段（语义化版本递增，如 1.0.11 → 1.0.12）
 2. 提交 commit: `git add package.json && git commit -m "chore: bump version to X.X.X"`
 3. 构建: `pnpm build && pnpm electron-builder --win --x64 --dir`
-4. 打包: `cd release && zip -r Desktop-Todo-vX.X.X-win-x64.zip win-unpacked`
+4. 打包: `cd release && zip -r Mochi-vX.X.X-win-x64.zip win-unpacked`
 5. 推送到远程: `git push origin main`
 6. 创建/更新 GitHub Release，上传 zip 包
 

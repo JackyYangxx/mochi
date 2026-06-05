@@ -92,7 +92,7 @@ export function createSettingsWindow(): BrowserWindow {
     minHeight: 500,
     resizable: true,
     frame: false,
-    title: 'Desktop Todo - Settings',
+    title: 'Mochi - Settings',
     show: false,
     webPreferences: {
       preload: preloadPath,

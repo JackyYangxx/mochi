@@ -1,5 +1,5 @@
-appId: com.desktop-todo-list.app
-productName: Desktop Todo
+appId: com.mochi.app
+productName: Mochi
 icon: assets/icon.png
 directories:
   output: release

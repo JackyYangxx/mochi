@@ -556,7 +556,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const renderSystemTab = () => (
     <section className="settings-section">
       <h3>开机自启</h3>
-      <p className="section-description">登录系统时自动启动 Desktop Todo</p>
+      <p className="section-description">登录系统时自动启动 Mochi</p>
       <div
         className="toggle-row"
         onClick={() => handleAutoLaunchChange(!settings.autoLaunch)}
@@ -695,7 +695,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="settings-panel">
       <header className="settings-header">
-        <h2>Desktop Todo</h2>
+        <h2>Mochi</h2>
         <button className="settings-close" onClick={onClose} aria-label="关闭">
           ×
         </button>

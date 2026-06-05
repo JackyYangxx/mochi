@@ -1,6 +1,6 @@
-# Desktop Todo
+# Mochi
 
-桌面角落里蹲着一只小宠物，提醒你今天还有什么没做完。
+桌面角落里蹲着一只叫 **Mochi** 的小宠物，提醒你今天还有什么没做完。
 
 点它说话，敲快捷键加待办，到点让 AI 整理成清单推到飞书/钉钉。数据全在本地，API Key 加密存储。
 
@@ -88,7 +88,7 @@ pnpm build
 
 # Windows x64
 pnpm build && pnpm electron-builder --win --x64 --dir
-cd release && zip -r Desktop-Todo-vX.X.X-win-x64.zip win-unpacked
+cd release && zip -r Mochi-vX.X.X-win-x64.zip win-unpacked
 ```
 
 ## License
