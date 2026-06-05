@@ -1,63 +1,85 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, test, expect, vi, beforeEach } from 'vitest';
+import { LLMService } from '../../src/services/LLMService';
 
-// Use hoisted to create mocks before vi.mock is called
+// Mock the openai package so configure() can create a real (mocked) client.
+// `mockCreate` is shared so tests can configure return values and inspect call
+// arguments directly.
 const mockCreate = vi.fn();
 
-const { mockKeyStoreGet, mockKeyStoreSet } = vi.hoisted(() => {
-  return {
-    mockKeyStoreGet: vi.fn(),
-    mockKeyStoreSet: vi.fn(),
-  };
-});
-
-// Mock openai - must use hoisted mockCreate
-vi.mock('openai', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      chat: {
-        completions: {
-          create: mockCreate,
-        },
+vi.mock('openai', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: mockCreate,
       },
-    })),
-  };
-});
-
-// Mock electron-log
-vi.mock('electron-log', () => ({
-  default: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    initialize: vi.fn(),
-  },
+    },
+  })),
 }));
 
-// Mock KeyStore
+// Mock KeyStore so the import chain (LLMService -> KeyStore -> electron) does
+// not try to load the electron binary in the test environment.
 vi.mock('../../src/services/KeyStore', () => ({
-  KeyStore: vi.fn().mockImplementation(function(this: any) {
-    this.get = mockKeyStoreGet;
-    this.set = mockKeyStoreSet;
+  KeyStore: vi.fn().mockImplementation(function (this: any) {
+    this.get = vi.fn();
+    this.set = vi.fn();
   }),
 }));
 
-describe('LLMService', () => {
-  let llmService: any;
+// electron-log is loaded for `log.info` in `configure()`.
+vi.mock('electron-log', () => ({
+  default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
 
-  beforeEach(async () => {
+describe('LLMService', () => {
+  let svc: LLMService;
+
+  beforeEach(() => {
     vi.clearAllMocks();
     mockCreate.mockReset();
-    mockKeyStoreGet.mockReset();
-    mockKeyStoreSet.mockReset();
-
-    const { LLMService } = await import('../../src/services/LLMService');
-    llmService = new LLMService();
+    svc = new LLMService();
+    // Stub dependencies used by chat() for KB context (F2 tests). For the
+    // generateReminderSummary tests, chat() short-circuits on the KB path when
+    // settings.get('kb_enabled') is not 'true', so these stubs are harmless.
+    (svc as any).settings = { get: vi.fn().mockReturnValue(null) };
+    (svc as any).roleService = { load: vi.fn().mockResolvedValue('') };
+    (svc as any).indexService = { search: vi.fn().mockReturnValue([]) };
   });
 
   describe('configure', () => {
     it('creates OpenAI client with provided credentials', async () => {
-      await llmService.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
-      expect(llmService.isConfigured()).toBe(true);
+      await svc.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
+      expect(svc.isConfigured()).toBe(true);
+    });
+  });
+
+  describe('chat()', () => {
+    test('chat() calls OpenAI with constructed messages', async () => {
+      mockCreate.mockResolvedValue({ choices: [{ message: { content: 'ok' } }] });
+      await svc.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
+      const result = await svc.chat({ systemPrompt: 'sys', userPrompt: 'user', kbContext: false });
+      expect(result).toBe('ok');
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            expect.objectContaining({ role: 'system', content: 'sys' }),
+            expect.objectContaining({ role: 'user', content: 'user' }),
+          ]),
+        }),
+      );
+    });
+
+    test('chat() injects role + wiki when kbContext=true and kb_enabled=true', async () => {
+      (svc as any).settings.get.mockImplementation((k: string) =>
+        k === 'kb_enabled' ? 'true' : null,
+      );
+      (svc as any).roleService.load.mockResolvedValue('# My Role');
+      (svc as any).indexService.search.mockReturnValue([{ path: '/w/x.md', content: 'wiki text' }]);
+      mockCreate.mockResolvedValue({ choices: [{ message: { content: 'ok' } }] });
+      await svc.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
+      await svc.chat({ systemPrompt: 'sys', userPrompt: 'user', kbContext: true });
+      const sysMsg = mockCreate.mock.calls[0][0].messages[0].content;
+      expect(sysMsg).toContain('# My Role');
+      expect(sysMsg).toContain('wiki text');
     });
   });
 
@@ -67,16 +89,11 @@ describe('LLMService', () => {
         { id: '1', content: 'Buy milk', isCompleted: true },
         { id: '2', content: 'Walk dog', isCompleted: false },
       ];
-
       mockCreate.mockResolvedValue({
-        choices: [{
-          message: { content: 'Reminder content' },
-        }],
+        choices: [{ message: { content: 'Reminder content' } }],
       });
-
-      await llmService.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
-      await llmService.generateReminderSummary(todos);
-
+      await svc.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
+      await svc.generateReminderSummary(todos);
       const callArgs = mockCreate.mock.calls[0][0];
       const userMessage = callArgs.messages.find((m: any) => m.role === 'user');
       expect(userMessage.content).toContain('Walk dog');
@@ -88,9 +105,8 @@ describe('LLMService', () => {
         { content: 'Task 1', isCompleted: true },
         { content: 'Task 2', isCompleted: true },
       ];
-
-      await llmService.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
-      const result = await llmService.generateReminderSummary(todos);
+      await svc.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
+      const result = await svc.generateReminderSummary(todos);
       expect(result).toBe('');
       expect(mockCreate).not.toHaveBeenCalled();
     });
@@ -100,16 +116,12 @@ describe('LLMService', () => {
         { content: 'Buy milk', isCompleted: false },
         { content: 'Walk dog', isCompleted: false },
       ];
-
       const expectedContent = '【摘要】\n2件待办事项\n\n【行动建议】\n1. 买牛奶\n2. 遛狗';
       mockCreate.mockResolvedValue({
-        choices: [{
-          message: { content: expectedContent },
-        }],
+        choices: [{ message: { content: expectedContent } }],
       });
-
-      await llmService.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
-      const result = await llmService.generateReminderSummary(todos);
+      await svc.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
+      const result = await svc.generateReminderSummary(todos);
       expect(result).toBe(expectedContent);
     });
 
@@ -118,45 +130,24 @@ describe('LLMService', () => {
         { content: 'Task 1', isCompleted: false },
         { content: 'Task 2', isCompleted: false },
       ];
-
       mockCreate.mockRejectedValue(new Error('API error'));
-
-      await llmService.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
-      await expect(llmService.generateReminderSummary(todos)).rejects.toThrow('API error');
+      await svc.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
+      await expect(svc.generateReminderSummary(todos)).rejects.toThrow('API error');
     });
 
     it('throws error when LLM client not configured', async () => {
+      // No configure() call, so this.client is null and the chat() guard fires.
       const todos = [{ content: 'Test', isCompleted: false }];
-
-      await expect(llmService.generateReminderSummary(todos)).rejects.toThrow('LLM client not configured');
+      await expect(svc.generateReminderSummary(todos)).rejects.toThrow('LLM client not configured');
     });
+  });
 
-    it('uses correct model and parameters', async () => {
-      const todos = [{ content: 'Test task', isCompleted: false }];
-
-      mockCreate.mockResolvedValue({
-        choices: [{ message: { content: 'Summary' } }],
-      });
-
-      await llmService.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
-      await llmService.generateReminderSummary(todos);
-
-      const callArgs = mockCreate.mock.calls[0][0];
-      expect(callArgs.model).toBe('gpt-4o-mini');
-      expect(callArgs.max_tokens).toBe(200);
-      expect(callArgs.temperature).toBe(0.7);
-    });
-
-    it('returns raw todo list when response has no content', async () => {
-      const todos = [{ content: 'Test task', isCompleted: false }];
-
-      mockCreate.mockResolvedValue({
-        choices: [{ message: { content: null } }],
-      });
-
-      await llmService.configure('https://api.openai.com/v1', 'gpt-4o-mini', 'test-key');
-      const result = await llmService.generateReminderSummary(todos);
-      expect(result).toContain('Test task');
+  describe('generateReminderSummary (F2 thin wrapper)', () => {
+    test('delegates to chat() with kbContext=true', async () => {
+      const chatSpy = vi.spyOn(svc, 'chat').mockResolvedValue('summary');
+      const result = await svc.generateReminderSummary([{ content: 'todo', isCompleted: false }]);
+      expect(result).toBe('summary');
+      expect(chatSpy).toHaveBeenCalledWith(expect.objectContaining({ kbContext: true }));
     });
   });
 });

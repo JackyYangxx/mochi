@@ -1,94 +1,92 @@
 import OpenAI from 'openai';
 import { KeyStore } from './KeyStore';
+import { SettingsService } from './SettingsService';
+import { RoleService } from './RoleService';
+import { WikiIndexService } from './WikiIndexService';
 import log from 'electron-log';
+
+interface ChatOpts { systemPrompt: string; userPrompt: string; kbContext?: boolean; }
+interface ChatContext { role: string; wikiHits: { path: string; content: string }[]; }
 
 export class LLMService {
   private client: OpenAI | null = null;
   private keyStore: KeyStore;
+  private settings!: SettingsService;
+  private roleService!: RoleService;
+  private indexService!: WikiIndexService;
 
   constructor() {
     this.keyStore = new KeyStore();
   }
 
-  async configure(endpoint: string, model: string, apiKey: string): Promise<void> {
-    this.client = new OpenAI({
-      apiKey,
-      baseURL: endpoint,
-    });
-    log.info(`LLMService configured with endpoint: ${endpoint}, model: ${model}`);
+  // Wire dependencies (called from main process startup)
+  setContext(s: SettingsService, r: RoleService, i: WikiIndexService): void {
+    this.settings = s;
+    this.roleService = r;
+    this.indexService = i;
   }
 
-  async generateReminderSummary(todos: { content: string; isCompleted: boolean }[]): Promise<string> {
-    if (!this.client) {
-      throw new Error('LLM client not configured');
-    }
+  async configure(endpoint: string, model: string, apiKey: string): Promise<void> {
+    this.client = new OpenAI({ apiKey, baseURL: endpoint });
+    log.info(`LLMService configured: ${endpoint}, ${model}`);
+  }
 
-    const incompleteTodos = todos.filter((t) => !t.isCompleted);
-    if (incompleteTodos.length === 0) {
-      return '';
-    }
+  isConfigured(): boolean { return this.client !== null; }
 
-    const todoList = incompleteTodos.map((t) => `- ${t.content}`).join('\n');
+  async chat(opts: ChatOpts): Promise<string> {
+    if (!this.client) throw new Error('LLM client not configured');
+
+    let systemPrompt = opts.systemPrompt;
+    if (opts.kbContext !== false && this.settings?.get('kb_enabled') === 'true') {
+      const ctx = await this.buildKbContext(opts.userPrompt);
+      systemPrompt = `[角色]\n${ctx.role || '(未配置 role.md)'}\n\n[相关知识]\n${ctx.wikiHits.map(h => `[${h.path}]\n${h.content}`).join('\n---\n') || '(无)'}\n\n[任务]\n${opts.systemPrompt}`;
+    }
 
     const response = await this.client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        {
-          role: 'system',
-          content: '你是一个待办事项提醒助手。请根据以下待办列表，生成一段简洁的中文提醒内容，包含摘要和行动建议。',
-        },
-        {
-          role: 'user',
-          content: `待办事项：\n${todoList}\n\n请生成提醒内容：`,
-        },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: opts.userPrompt },
       ],
-      max_tokens: 200,
-      temperature: 0.7,
     });
+    return response.choices[0]?.message?.content || '';
+  }
 
-    return response.choices[0]?.message?.content || todoList;
+  private async buildKbContext(query: string): Promise<ChatContext> {
+    const role = await this.roleService?.load() ?? '';
+    const topK = this.indexService?.search(query.slice(0, 200), 5) ?? [];
+    return { role, wikiHits: topK.map(p => ({ path: p.path, content: p.content })) };
+  }
+
+  // F2: thin wrappers (unchanged signatures for ReminderService / DailyReportService)
+  async generateReminderSummary(todos: { content: string; isCompleted: boolean }[]): Promise<string> {
+    const incomplete = todos.filter(t => !t.isCompleted);
+    if (incomplete.length === 0) return '';
+    return this.chat({
+      systemPrompt: '你是一个待办事项提醒助手。请根据待办列表生成一段简洁的中文提醒，包含摘要和行动建议。',
+      userPrompt: `待办事项：\n${incomplete.map(t => `- ${t.content}`).join('\n')}\n\n请生成提醒内容：`,
+      kbContext: true,
+    });
   }
 
   async generateDailyReport(
     completedTodos: { content: string; completedAt: string }[],
-    incompleteTodos: { content: string }[]
+    incompleteTodos: { content: string }[],
   ): Promise<{ completedSection: string; incompleteSection: string; summary: string }> {
-    if (!this.client) {
-      throw new Error('LLM client not configured');
-    }
-
-    const completedList = completedTodos.map((t) => `- ${t.content}`).join('\n');
-    const incompleteList = incompleteTodos.map((t) => `- ${t.content}`).join('\n');
-
-    const response = await this.client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: '你是一个工作日报助手。请根据以下完成和未完成的待办事项，生成中文日报内容。返回 JSON 格式，包含 completedSection、incompleteSection 和 summary 三个字段。',
-        },
-        {
-          role: 'user',
-          content: `完成事项：\n${completedList || '（无）'}\n\n未完成事项：\n${incompleteList || '（无）'}\n\n请生成日报，返回 JSON 格式。`,
-        },
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
+    const completedList = completedTodos.map(t => `- ${t.content}`).join('\n');
+    const incompleteList = incompleteTodos.map(t => `- ${t.content}`).join('\n');
+    const content = await this.chat({
+      systemPrompt: '你是工作日报助手。返回 JSON 包含 completedSection / incompleteSection / summary。',
+      userPrompt: `完成：\n${completedList || '（无）'}\n未完成：\n${incompleteList || '（无）'}`,
+      kbContext: true,
     });
-
-    const content = response.choices[0]?.message?.content || '';
-    try {
-      return JSON.parse(content);
-    } catch {
+    try { return JSON.parse(content); }
+    catch {
       return {
         completedSection: completedList || '（无）',
         incompleteSection: incompleteList || '（无）',
         summary: '请手动查看待办事项。',
       };
     }
-  }
-
-  isConfigured(): boolean {
-    return this.client !== null;
   }
 }
