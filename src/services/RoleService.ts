@@ -23,13 +23,20 @@ const TEMPLATE = `# 角色
 `;
 
 export class RoleService {
-  constructor(private dataDir: string) {}
+  // legacyFilePath: optional old location (e.g. userData/role.md) to migrate
+  // from on first load. Copied once into the new dataDir if it exists.
+  constructor(private dataDir: string, private legacyFilePath?: string) {}
 
   get filePath(): string {
     return path.join(this.dataDir, 'role.md');
   }
 
   async load(): Promise<string> {
+    fs.mkdirSync(this.dataDir, { recursive: true });
+    if (!fs.existsSync(this.filePath) && this.legacyFilePath && fs.existsSync(this.legacyFilePath)) {
+      fs.copyFileSync(this.legacyFilePath, this.filePath);
+      log.info(`[RoleService] Migrated role.md from ${this.legacyFilePath} to ${this.filePath}`);
+    }
     if (!fs.existsSync(this.filePath)) {
       fs.writeFileSync(this.filePath, TEMPLATE, 'utf-8');
       log.info(`[RoleService] Created template at ${this.filePath}`);

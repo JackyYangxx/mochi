@@ -16,6 +16,8 @@ import { WikiIngestService } from '../services/WikiIngestService';
 import { WikiIndexService } from '../services/WikiIndexService';
 import log from 'electron-log';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
 
 // Disable hardware acceleration to prevent black screen on Windows
 app.disableHardwareAcceleration();
@@ -50,10 +52,19 @@ app.whenReady().then(async () => {
   // Knowledge Base Phase 4: wire up services at startup
   // ============================================================
   const userDataDir = app.getPath('userData');
-  const roleService = new RoleService(userDataDir);
+  // KB config dir: ~/.todoagent/ on the user's home — keeps new KB artifacts
+  // (role.md, wiki output) in a conventional dotfolder, separate from the
+  // Electron-managed userData (which holds todos.db + pet images). Pre-existing
+  // role.md in userData is migrated one-way into the new dir on first load.
+  const todoagentDir = path.join(os.homedir(), '.todoagent');
+  fs.mkdirSync(todoagentDir, { recursive: true });
+  const roleService = new RoleService(todoagentDir, path.join(userDataDir, 'role.md'));
+  // Eager-load so role.md exists at ~/.todoagent/role.md from the first
+  // launch (creates from template, or migrates a legacy userData/role.md).
+  await roleService.load();
   const kbService = new KnowledgeBaseService(getDb(), settingsService);
   const indexService = new WikiIndexService();
-  const wikiDirSetting = settingsService.get('kb_wiki_dir') || path.join(userDataDir, 'wiki');
+  const wikiDirSetting = settingsService.get('kb_wiki_dir') || path.join(todoagentDir, 'wiki');
   ingestService = new WikiIngestService(getDb(), { llm: llmService, wikiDir: wikiDirSetting });
   watcher = new KnowledgeWatcher({ enqueue: (p) => ingestService!.enqueue(p) });
 
