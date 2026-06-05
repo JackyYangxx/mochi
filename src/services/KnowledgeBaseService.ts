@@ -5,7 +5,7 @@ import Database from 'better-sqlite3';
 
 interface SettingsReader { get(key: string): string | null; set(key: string, value: string): void; }
 
-export interface KbSource { id: number; path: string; enabled: boolean; addedAt: string; }
+export interface KbSource { id: number; path: string; enabled: boolean; addedAt: string; fileCount: number; }
 
 export class KnowledgeBaseService {
   constructor(
@@ -52,7 +52,7 @@ export class KnowledgeBaseService {
     const stmt = this.db.prepare('INSERT INTO kb_sources (path, enabled) VALUES (?, 1)');
     const result = stmt.run(dirPath);
     log.info(`[KB] Added source: ${dirPath} (${newCount} files)`);
-    return { id: Number(result.lastInsertRowid), path: dirPath, enabled: true, addedAt: new Date().toISOString() };
+    return { id: Number(result.lastInsertRowid), path: dirPath, enabled: true, addedAt: new Date().toISOString(), fileCount: newCount };
   }
 
   removeSource(dirPath: string): void {
@@ -61,7 +61,27 @@ export class KnowledgeBaseService {
   }
 
   listSources(): KbSource[] {
-    return this.db.prepare('SELECT id, path, enabled, added_at AS addedAt FROM kb_sources ORDER BY id').all() as KbSource[];
+    const rows = this.db
+      .prepare('SELECT id, path, enabled, added_at AS addedAt FROM kb_sources ORDER BY id')
+      .all() as Array<{ id: number; path: string; enabled: number; addedAt: string }>;
+    return rows.map((row) => ({
+      id: row.id,
+      path: row.path,
+      enabled: Boolean(row.enabled),
+      addedAt: row.addedAt,
+      // Walk the dir to compute live file count; if the source dir was removed
+      // or is unreadable we report 0 instead of crashing the whole list.
+      fileCount: this.safeCount(row.path),
+    }));
+  }
+
+  private safeCount(dir: string): number {
+    try {
+      if (!fs.existsSync(dir)) return 0;
+      return this.countMdFiles(dir);
+    } catch {
+      return 0;
+    }
   }
 
   private totalEnabledFiles(): number {

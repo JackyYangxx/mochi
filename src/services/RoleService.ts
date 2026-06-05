@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { shell } from 'electron';
 import log from 'electron-log';
 
 const TEMPLATE = `# 角色
@@ -42,5 +43,9 @@ export class RoleService {
 
   async reset(): Promise<void> {
     fs.writeFileSync(this.filePath, TEMPLATE, 'utf-8');
+  }
+
+  async openInEditor(): Promise<void> {
+    await shell.openPath(this.filePath);
   }
 }
