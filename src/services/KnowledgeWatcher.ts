@@ -1,5 +1,6 @@
 import chokidar, { FSWatcher } from 'chokidar';
 import log from 'electron-log';
+import { isMarkdownPath } from '../utils/mdWalker';
 
 export interface WatcherDeps {
   enqueue: (filePath: string) => void;
@@ -21,11 +22,13 @@ export class KnowledgeWatcher {
       this.watcher.on('add', (p) => this.handle(p));
       this.watcher.on('change', (p) => this.handle(p));
       this.watcher.on('unlink', (p) => this.handle(p));
+    } else {
+      this.watcher.add(dir);
     }
   }
 
   private handle(filePath: string): void {
-    if (!/\.(md|markdown|mdx)$/i.test(filePath)) return;
+    if (!isMarkdownPath(filePath)) return;
     const existing = this.debounceTimers.get(filePath);
     if (existing) clearTimeout(existing);
     const timer = setTimeout(() => {
@@ -37,14 +40,9 @@ export class KnowledgeWatcher {
 
   async start(): Promise<void> {
     if (!this.watcher) {
-      // No source dirs were added — log and return instead of throwing so the
-      // app.whenReady() chain in index.ts doesn't abort on unhandled rejection.
-      // The Phase 4 wiring iterates enabled sources; an empty list is a valid
-      // first-run state (user hasn't added any sources yet).
       log.info('[KnowledgeWatcher] No source dirs registered, skipping start');
       return;
     }
-    // chokidar starts watching on .add() automatically; nothing to do
     log.info('[KnowledgeWatcher] Started');
   }
 

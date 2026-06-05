@@ -4,7 +4,6 @@ import { SettingsService } from '../services/SettingsService';
 import { DailyReportService } from '../services/DailyReportService';
 import { KnowledgeBaseService } from '../services/KnowledgeBaseService';
 import { RoleService } from '../services/RoleService';
-import { getDb } from '../database/connection';
 import fs from 'fs';
 import path from 'path';
 
@@ -12,15 +11,19 @@ let todoService: TodoService;
 let settingsService: SettingsService;
 let dailyReportService: DailyReportService | null = null;
 let kbService: KnowledgeBaseService;
-// Phase 1: WikiIngestService is created in Task 7/8; we use a lazy any-typed ref
-// so the UI wiring compiles before that service lands. Methods called through
-// the handlers will throw a clear "not yet wired" error until then.
 let kbIngestService: { getStats(): unknown; rebuildAll(): Promise<unknown> } | null = null;
 let roleService: RoleService;
 
-// Phase 4 closure: main process calls this after constructing WikiIngestService.
-// The setter pattern breaks the circular import between index.ts and ipc.ts
-// without resorting to module-level exports of state.
+// Setters break the circular import between index.ts and ipc.ts: index.ts
+// constructs the services (they depend on userData dir, role.md path, etc.)
+// and hands them in after registerIpcHandlers has registered the handler
+// closures. IPC events only fire once the renderer mounts, so the gap is safe.
+export function setKbService(svc: KnowledgeBaseService): void {
+  kbService = svc;
+}
+export function setRoleService(svc: RoleService): void {
+  roleService = svc;
+}
 export function setKbIngestService(svc: {
   getStats(): unknown;
   rebuildAll(): Promise<unknown>;
@@ -31,8 +34,6 @@ export function setKbIngestService(svc: {
 export function registerIpcHandlers(): void {
   todoService = new TodoService();
   settingsService = new SettingsService();
-  kbService = new KnowledgeBaseService(getDb(), settingsService);
-  roleService = new RoleService(app.getPath('userData'));
 
   // Daily Report handlers
   ipcMain.handle('dailyReport:generate', async () => {
@@ -186,9 +187,7 @@ export function registerIpcHandlers(): void {
     return { success: true, count: added.length };
   });
 
-  // ============================================================
-  // Knowledge Base (Phase 1) handlers
-  // ============================================================
+  // Knowledge Base handlers
   ipcMain.handle('kb:listSources', () => kbService.listSources());
   ipcMain.handle('kb:addSource', (_event, dirPath: string) => kbService.addSource(dirPath));
   ipcMain.handle('kb:removeSource', (_event, dirPath: string) => kbService.removeSource(dirPath));
@@ -200,7 +199,7 @@ export function registerIpcHandlers(): void {
   });
   ipcMain.handle('kb:rebuild', async () => {
     if (!kbIngestService) {
-      throw new Error('WikiIngestService 尚未初始化（Phase 2 任务待完成）');
+      throw new Error('WikiIngestService 尚未初始化');
     }
     return kbIngestService.rebuildAll();
   });

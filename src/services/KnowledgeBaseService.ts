@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import log from 'electron-log';
 import Database from 'better-sqlite3';
+import { walkMdFiles } from '../utils/mdWalker';
 
 interface SettingsReader { get(key: string): string | null; set(key: string, value: string): void; }
 
@@ -23,16 +24,7 @@ export class KnowledgeBaseService {
   }
 
   private countMdFiles(dir: string): number {
-    let n = 0;
-    const walk = (d: string) => {
-      for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-        const p = path.join(d, entry.name);
-        if (entry.isDirectory()) walk(p);
-        else if (/\.(md|markdown|mdx)$/i.test(entry.name)) n++;
-      }
-    };
-    walk(dir);
-    return n;
+    return walkMdFiles(dir).length;
   }
 
   addSource(dirPath: string): KbSource {
@@ -69,8 +61,6 @@ export class KnowledgeBaseService {
       path: row.path,
       enabled: Boolean(row.enabled),
       addedAt: row.addedAt,
-      // Walk the dir to compute live file count; if the source dir was removed
-      // or is unreadable we report 0 instead of crashing the whole list.
       fileCount: this.safeCount(row.path),
     }));
   }

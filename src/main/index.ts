@@ -3,7 +3,7 @@ import { createMainWindow, getMainWindow, saveWindowPosition } from './window';
 import { createTray } from './tray';
 import { openSettingsWindow, closeSettingsWindow } from './settingsWindow';
 import { initDatabase, closeDatabase, getDb } from '../database/connection';
-import { registerIpcHandlers, setKbIngestService } from './ipc';
+import { registerIpcHandlers, setKbService, setRoleService, setKbIngestService } from './ipc';
 import { registerGlobalShortcut, unregisterAllShortcuts } from './shortcut';
 import { ReminderService } from '../services/ReminderService';
 import { CLIExecutor } from '../services/CLIExecutor';
@@ -48,9 +48,6 @@ app.whenReady().then(async () => {
   reminderService = new ReminderService(cliExecutor, llmService, settingsService);
   reminderService.start();
 
-  // ============================================================
-  // Knowledge Base Phase 4: wire up services at startup
-  // ============================================================
   const userDataDir = app.getPath('userData');
   // KB config dir: ~/.todoagent/ on the user's home — keeps new KB artifacts
   // (role.md, wiki output) in a conventional dotfolder, separate from the
@@ -68,7 +65,7 @@ app.whenReady().then(async () => {
   ingestService = new WikiIngestService(getDb(), { llm: llmService, wikiDir: wikiDirSetting });
   watcher = new KnowledgeWatcher({ enqueue: (p) => ingestService!.enqueue(p) });
 
-  // F3: startup wiki-dir change detection. Drops stale pages if wikiDir changed.
+  // Drop stale wiki pages if the user changed the wiki dir since last run.
   const lastIndexed = settingsService.get('kb_wiki_dir_last_indexed');
   await indexService.initFromDbAndDisk(getDb(), wikiDirSetting, lastIndexed);
 
@@ -84,7 +81,12 @@ app.whenReady().then(async () => {
   // Start ingest worker (drains kb_ingest_queue on a 2s poll)
   ingestService.startWorker();
 
-  // Hand the ingest service to IPC handlers (kb:getStats / kb:rebuild)
+  // Hand the services to IPC handlers. Order matters: services that the
+  // handlers delegate to (kbService, roleService, kbIngestService) must be
+  // set before any IPC event fires. Handlers are registered but no events
+  // arrive until the renderer mounts, which happens after createMainWindow.
+  setKbService(kbService);
+  setRoleService(roleService);
   setKbIngestService(ingestService);
 
   // Register IPC handler for auto-launch setting

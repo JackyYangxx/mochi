@@ -3,6 +3,7 @@ import path from 'path';
 import Database from 'better-sqlite3';
 import { z } from 'zod';
 import log from 'electron-log';
+import { walkMdFiles } from '../utils/mdWalker';
 
 const Step1Output = z.object({
   summary: z.string(),
@@ -43,7 +44,8 @@ export class WikiIngestService {
     return tx();
   }
 
-  // F5: atomic write via tmp + rename
+  // Atomic write: tmp + fsync + rename. Avoids leaving a half-written file
+  // visible if the process dies mid-write.
   async atomicWrite(filePath: string, content: string): Promise<void> {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     const tmpPath = filePath + '.tmp';
@@ -55,7 +57,6 @@ export class WikiIngestService {
 
   async step1(sourceContent: string, roleContent: string, overviewContent: string, jobId = 0): Promise<z.infer<typeof Step1Output>> {
     return this.withRetry(async () => {
-      // F5: kbContext=false to avoid recursion
       const response = await this.deps.llm.chat({
         systemPrompt: `${roleContent}\n\n${overviewContent}`,
         userPrompt: `分析以下源材料:\n\n${sourceContent}`,
@@ -98,9 +99,7 @@ export class WikiIngestService {
     throw new Error('LLM retries exhausted');
   }
 
-  // Phase 4: worker loop that drains the queue.
-  // Polls pickNextJob() every `pollIntervalMs` and runs step1 -> step2 -> atomicWrite.
-  // Idempotent: calling startWorker() multiple times is a no-op while already running.
+  // Idempotent: re-calling startWorker() while already running is a no-op.
   startWorker(pollIntervalMs = 2000): void {
     if (this.workerRunning) return;
     this.workerRunning = true;
@@ -137,10 +136,10 @@ export class WikiIngestService {
     if (!job) return;
     try {
       const sourceContent = fs.readFileSync(job.file_path, 'utf-8');
-      const role = '';  // Phase 4 closure: role injection happens via LLMService.chat() kbContext path
-      const step1Data = await this.step1(sourceContent, role, '', job.id);
+      // Role/overview injection happens via LLMService.chat()'s kbContext path.
+      const step1Data = await this.step1(sourceContent, '', '', job.id);
       const step2Data = await this.step2(sourceContent, step1Data, job.id);
-      // Security: LLM is untrusted. Reject absolute paths so path.join can't be coerced
+      // LLM is untrusted: reject absolute paths so path.join can't be coerced
       // into writing outside wikiDir (e.g. /etc/passwd). Relative paths only.
       const sourcePagePath = step2Data.sourcePage.path;
       if (path.isAbsolute(sourcePagePath)) {
@@ -158,7 +157,6 @@ export class WikiIngestService {
     }
   }
 
-  // Phase 4: stats for IPC handler `kb:getStats`.
   getStats(): { pending: number; processing: number; failed: number; lastIngestedAt: string | null } {
     const counts = this.db.prepare(`
       SELECT status, COUNT(*) as n FROM kb_ingest_queue GROUP BY status
@@ -175,22 +173,12 @@ export class WikiIngestService {
     return { pending, processing, failed, lastIngestedAt: lastRow?.enqueued_at ?? null };
   }
 
-  // Phase 4: re-enqueue every .md file under every enabled source. Used by
-  // IPC handler `kb:rebuild`. Idempotent: removes any pending duplicates
-  // before re-enqueuing so a second call does not double-insert.
   async rebuildAll(): Promise<{ reEnqueued: number }> {
     const rows = this.db.prepare(`SELECT path FROM kb_sources WHERE enabled = 1`).all() as { path: string }[];
     const files: string[] = [];
     for (const r of rows) {
-      if (!fs.existsSync(r.path)) continue;
-      const walk = (d: string) => {
-        for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-          const p = path.join(d, entry.name);
-          if (entry.isDirectory()) walk(p);
-          else if (/\.(md|markdown|mdx)$/i.test(entry.name)) files.push(p);
-        }
-      };
-      try { walk(r.path); } catch (e) { log.warn(`[WikiIngest] rebuildAll: skipping unreadable source ${r.path}: ${(e as Error).message}`); }
+      try { files.push(...walkMdFiles(r.path)); }
+      catch (e) { log.warn(`[WikiIngest] rebuildAll: skipping unreadable source ${r.path}: ${(e as Error).message}`); }
     }
     let n = 0;
     const tx = this.db.transaction((paths: string[]) => {
