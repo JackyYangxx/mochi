@@ -7,3 +7,8 @@ playwright-report/
 
 .DS_Store
 .worktrees/
+
+# E2E / CDP exploration scratch (manually deleted, regenerate freely)
+test-app/
+test-simple/
+test-preload.html
