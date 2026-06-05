@@ -20,6 +20,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@shared': path.resolve(__dirname, 'src/shared'),
+      // Test-only shim: better-sqlite3@9.6.0 has no prebuilt for Node 24 and
+      // cannot be built from source. Node 24 ships node:sqlite with a compatible
+      // API for the surface used by our tests.
+      'better-sqlite3': path.resolve(__dirname, 'tests/helpers/better-sqlite3-shim.mjs'),
     },
   },
 });
