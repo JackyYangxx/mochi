@@ -18,6 +18,16 @@ let kbService: KnowledgeBaseService;
 let kbIngestService: { getStats(): unknown; rebuildAll(): Promise<unknown> } | null = null;
 let roleService: RoleService;
 
+// Phase 4 closure: main process calls this after constructing WikiIngestService.
+// The setter pattern breaks the circular import between index.ts and ipc.ts
+// without resorting to module-level exports of state.
+export function setKbIngestService(svc: {
+  getStats(): unknown;
+  rebuildAll(): Promise<unknown>;
+}): void {
+  kbIngestService = svc;
+}
+
 export function registerIpcHandlers(): void {
   todoService = new TodoService();
   settingsService = new SettingsService();

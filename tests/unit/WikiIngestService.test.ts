@@ -109,3 +109,185 @@ describe('WikiIngestService.twoStepCoT', () => {
     expect(mockLlm.chat).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('WikiIngestService.worker', () => {
+  let tmpDir: string; let wikiDir: string; let db: Database.Database; let mockLlm: any; let svc: WikiIngestService;
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ingest-worker-src-'));
+    wikiDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ingest-worker-wiki-'));
+    db = new Database(':memory:');
+    db.exec(`CREATE TABLE kb_ingest_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, file_path TEXT NOT NULL, enqueued_at DATETIME DEFAULT CURRENT_TIMESTAMP, status TEXT NOT NULL DEFAULT 'pending', retry_count INTEGER DEFAULT 0, error TEXT);`);
+    mockLlm = { chat: vi.fn() };
+    svc = new WikiIngestService(db, { llm: mockLlm, wikiDir });
+  });
+  afterEach(() => {
+    svc.stopWorker();
+    try { db.close(); } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      fs.rmSync(wikiDir, { recursive: true, force: true });
+    }
+  });
+
+  test('startWorker drains queue: enqueued file is processed and marked done', async () => {
+    // Arrange: a real .md source file in tmpDir
+    const sourcePath = path.join(tmpDir, 'sample.md');
+    fs.writeFileSync(sourcePath, '# source content', 'utf-8');
+
+    // Step 1 mock
+    mockLlm.chat.mockResolvedValueOnce(JSON.stringify({
+      summary: '...', entities: [], concepts: [], keyPoints: ['x'], linksTo: [], contradicts: [],
+    }));
+    // Step 2 mock
+    mockLlm.chat.mockResolvedValueOnce(JSON.stringify({
+      sourcePage: { path: 'sources/sample.md', content: '# generated' },
+      entityPages: [], conceptPages: [], logEntries: [],
+    }));
+
+    svc.enqueue(sourcePath);
+
+    // Act: start worker with 50ms poll for fast test
+    svc.startWorker(50);
+
+    // Wait for job to reach 'done' status
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      const row = db.prepare('SELECT status FROM kb_ingest_queue WHERE file_path = ?').get(sourcePath) as { status: string } | undefined;
+      if (row?.status === 'done') break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    // Assert: status=done
+    const finalRow = db.prepare('SELECT status, error FROM kb_ingest_queue WHERE file_path = ?').get(sourcePath) as { status: string; error: string | null };
+    expect(finalRow.status).toBe('done');
+    expect(finalRow.error).toBeNull();
+
+    // Assert: file written to wikiDir with the right path + content
+    const writtenPath = path.join(wikiDir, 'sources', 'sample.md');
+    expect(fs.existsSync(writtenPath)).toBe(true);
+    expect(fs.readFileSync(writtenPath, 'utf-8')).toBe('# generated');
+  });
+
+  test('startWorker is idempotent: calling twice does not create two loops', () => {
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+    svc.startWorker(50);
+    const callsAfterFirst = setTimeoutSpy.mock.calls.length;
+    svc.startWorker(50);  // should be a no-op
+    expect(setTimeoutSpy.mock.calls.length).toBe(callsAfterFirst);
+    setTimeoutSpy.mockRestore();
+  });
+
+  test('stopWorker halts the loop and prevents further processing', async () => {
+    svc.enqueue('/nonexistent.md');  // will fail in step1
+    svc.startWorker(50);
+    // Let it tick once and process (fails because file doesn't exist)
+    await new Promise(r => setTimeout(r, 100));
+    // The job that ran before stop should be marked as 'failed' (readFileSync error)
+    const firstJob = db.prepare(`SELECT status FROM kb_ingest_queue WHERE file_path = ?`).get('/nonexistent.md') as { status: string };
+    expect(firstJob.status).toBe('failed');
+    svc.stopWorker();
+    // Re-enqueue and verify it does NOT get processed after stop
+    const callsBefore = mockLlm.chat.mock.calls.length;
+    svc.enqueue('/another-nonexistent.md');
+    await new Promise(r => setTimeout(r, 200));
+    expect(mockLlm.chat.mock.calls.length).toBe(callsBefore);
+  });
+
+  test('absolute path returned by LLM is rejected and job marked failed', async () => {
+    // Arrange: a real source file
+    const sourcePath = path.join(tmpDir, 'sample.md');
+    fs.writeFileSync(sourcePath, '# source content', 'utf-8');
+
+    // Step 1 mock
+    mockLlm.chat.mockResolvedValueOnce(JSON.stringify({
+      summary: '...', entities: [], concepts: [], keyPoints: ['x'], linksTo: [], contradicts: [],
+    }));
+    // Step 2 mock returns an ABSOLUTE path (a potential arbitrary-write attack)
+    const evilPath = path.join(tmpDir, 'evil-target.md');
+    mockLlm.chat.mockResolvedValueOnce(JSON.stringify({
+      sourcePage: { path: evilPath, content: 'malicious content' },
+      entityPages: [], conceptPages: [], logEntries: [],
+    }));
+
+    svc.enqueue(sourcePath);
+    svc.startWorker(50);
+
+    // Wait for the job to be marked failed
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      const row = db.prepare('SELECT status FROM kb_ingest_queue WHERE file_path = ?').get(sourcePath) as { status: string } | undefined;
+      if (row?.status === 'failed') break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    const finalRow = db.prepare('SELECT status, error FROM kb_ingest_queue WHERE file_path = ?').get(sourcePath) as { status: string; error: string | null };
+    expect(finalRow.status).toBe('failed');
+    expect(finalRow.error).toMatch(/absolute path/i);
+
+    // Critical security assertion: the evil target file must NOT have been written
+    expect(fs.existsSync(evilPath)).toBe(false);
+  });
+});
+
+describe('WikiIngestService.statsAndRebuild', () => {
+  let tmpDir: string; let wikiDir: string; let db: Database.Database; let mockLlm: any; let svc: WikiIngestService;
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ingest-stats-'));
+    wikiDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ingest-stats-wiki-'));
+    db = new Database(':memory:');
+    db.exec(`CREATE TABLE kb_ingest_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, file_path TEXT NOT NULL, enqueued_at DATETIME DEFAULT CURRENT_TIMESTAMP, status TEXT NOT NULL DEFAULT 'pending', retry_count INTEGER DEFAULT 0, error TEXT);`);
+    db.exec(`CREATE TABLE kb_sources (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL UNIQUE, enabled INTEGER NOT NULL DEFAULT 1, added_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    mockLlm = { chat: vi.fn() };
+    svc = new WikiIngestService(db, { llm: mockLlm, wikiDir });
+  });
+  afterEach(() => {
+    svc.stopWorker();
+    try { db.close(); } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      fs.rmSync(wikiDir, { recursive: true, force: true });
+    }
+  });
+
+  test('getStats returns counts grouped by status', () => {
+    svc.enqueue('/a.md');
+    svc.enqueue('/b.md');
+    db.prepare(`UPDATE kb_ingest_queue SET status = 'failed' WHERE file_path = '/a.md'`).run();
+    const stats = svc.getStats();
+    expect(stats.pending).toBe(1);
+    expect(stats.failed).toBe(1);
+    expect(stats.processing).toBe(0);
+  });
+
+  test('getStats returns lastIngestedAt when there is a done row', () => {
+    db.prepare(`INSERT INTO kb_ingest_queue (file_path, enqueued_at, status) VALUES (?, '2026-01-01 00:00:00', 'done')`).run('/done1.md');
+    db.prepare(`INSERT INTO kb_ingest_queue (file_path, enqueued_at, status) VALUES (?, '2026-02-15 12:34:56', 'done')`).run('/done2.md');
+    db.prepare(`INSERT INTO kb_ingest_queue (file_path, enqueued_at, status) VALUES (?, '2026-03-01 00:00:00', 'pending')`).run('/pending.md');
+    const stats = svc.getStats();
+    expect(stats.lastIngestedAt).toBe('2026-02-15 12:34:56');  // most recent done
+    expect(stats.pending).toBe(1);
+  });
+
+  test('getStats returns lastIngestedAt = null when there are no done rows', () => {
+    svc.enqueue('/a.md');
+    const stats = svc.getStats();
+    expect(stats.lastIngestedAt).toBeNull();
+  });
+
+  test('rebuildAll re-enqueues every enabled source', async () => {
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run('/dir1');
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run('/dir2');
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 0)`).run('/dir3-disabled');
+    const result = await svc.rebuildAll();
+    expect(result.reEnqueued).toBe(2);
+    const pending = db.prepare(`SELECT COUNT(*) as n FROM kb_ingest_queue WHERE status = 'pending'`).get() as { n: number };
+    expect(pending.n).toBe(2);
+  });
+
+  test('rebuildAll is idempotent: calling twice does not double-insert pending rows', async () => {
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run('/dir1');
+    db.prepare(`INSERT INTO kb_sources (path, enabled) VALUES (?, 1)`).run('/dir2');
+    await svc.rebuildAll();
+    await svc.rebuildAll();
+    const pending = db.prepare(`SELECT COUNT(*) as n FROM kb_ingest_queue WHERE status = 'pending'`).get() as { n: number };
+    expect(pending.n).toBe(2);  // still 2, not 4
+  });
+});

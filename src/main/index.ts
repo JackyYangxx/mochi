@@ -3,13 +3,19 @@ import { createMainWindow, getMainWindow, saveWindowPosition } from './window';
 import { createTray } from './tray';
 import { openSettingsWindow, closeSettingsWindow } from './settingsWindow';
 import { initDatabase, closeDatabase, getDb } from '../database/connection';
-import { registerIpcHandlers } from './ipc';
+import { registerIpcHandlers, setKbIngestService } from './ipc';
 import { registerGlobalShortcut, unregisterAllShortcuts } from './shortcut';
 import { ReminderService } from '../services/ReminderService';
 import { CLIExecutor } from '../services/CLIExecutor';
 import { LLMService } from '../services/LLMService';
 import { SettingsService } from '../services/SettingsService';
+import { RoleService } from '../services/RoleService';
+import { KnowledgeBaseService } from '../services/KnowledgeBaseService';
+import { KnowledgeWatcher } from '../services/KnowledgeWatcher';
+import { WikiIngestService } from '../services/WikiIngestService';
+import { WikiIndexService } from '../services/WikiIndexService';
 import log from 'electron-log';
+import path from 'path';
 
 // Disable hardware acceleration to prevent black screen on Windows
 app.disableHardwareAcceleration();
@@ -18,8 +24,10 @@ log.initialize();
 
 let isQuitting = false;
 let reminderService: ReminderService | null = null;
+let watcher: KnowledgeWatcher | null = null;
+let ingestService: WikiIngestService | null = null;
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   initDatabase();
   registerIpcHandlers();
 
@@ -37,6 +45,36 @@ app.whenReady().then(() => {
   const cliExecutor = new CLIExecutor();
   reminderService = new ReminderService(cliExecutor, llmService, settingsService);
   reminderService.start();
+
+  // ============================================================
+  // Knowledge Base Phase 4: wire up services at startup
+  // ============================================================
+  const userDataDir = app.getPath('userData');
+  const roleService = new RoleService(userDataDir);
+  const kbService = new KnowledgeBaseService(getDb(), settingsService);
+  const indexService = new WikiIndexService();
+  const wikiDirSetting = settingsService.get('kb_wiki_dir') || path.join(userDataDir, 'wiki');
+  ingestService = new WikiIngestService(getDb(), { llm: llmService, wikiDir: wikiDirSetting });
+  watcher = new KnowledgeWatcher({ enqueue: (p) => ingestService!.enqueue(p) });
+
+  // F3: startup wiki-dir change detection. Drops stale pages if wikiDir changed.
+  const lastIndexed = settingsService.get('kb_wiki_dir_last_indexed');
+  await indexService.initFromDbAndDisk(getDb(), wikiDirSetting, lastIndexed);
+
+  // Wire LLMService dependencies for KB context injection (role + wiki hits).
+  llmService.setContext(settingsService, roleService, indexService);
+
+  // Start watcher on all enabled sources
+  for (const src of kbService.listSources().filter(s => s.enabled)) {
+    watcher.addDir(src.path);
+  }
+  await watcher.start();
+
+  // Start ingest worker (drains kb_ingest_queue on a 2s poll)
+  ingestService.startWorker();
+
+  // Hand the ingest service to IPC handlers (kb:getStats / kb:rebuild)
+  setKbIngestService(ingestService);
 
   // Register IPC handler for auto-launch setting
   ipcMain.handle('settings:setAutoLaunch', (_event: any, enabled: boolean) => {
@@ -76,6 +114,8 @@ app.whenReady().then(() => {
 app.on('will-quit', () => {
   unregisterAllShortcuts();
   reminderService?.stop();
+  watcher?.stop();
+  ingestService?.stopWorker();
 });
 
 app.on('before-quit', () => {

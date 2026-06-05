@@ -24,6 +24,10 @@ const Step2Output = z.object({
 
 interface IngestDeps { llm: any; wikiDir: string; }
 export class WikiIngestService {
+  private workerTimer: NodeJS.Timeout | null = null;
+  private workerRunning = false;
+  private workerShouldStop = false;
+
   constructor(private db: Database.Database, private deps: IngestDeps) {}
 
   enqueue(filePath: string): void {
@@ -92,5 +96,103 @@ export class WikiIngestService {
     this.db.prepare(`UPDATE kb_ingest_queue SET status = 'failed' WHERE id = ?`).run(jobId);
     log.error('[WikiIngest] LLM retries exhausted for job', jobId);
     throw new Error('LLM retries exhausted');
+  }
+
+  // Phase 4: worker loop that drains the queue.
+  // Polls pickNextJob() every `pollIntervalMs` and runs step1 -> step2 -> atomicWrite.
+  // Idempotent: calling startWorker() multiple times is a no-op while already running.
+  startWorker(pollIntervalMs = 2000): void {
+    if (this.workerRunning) return;
+    this.workerRunning = true;
+    this.workerShouldStop = false;
+    const tick = async () => {
+      if (this.workerShouldStop) {
+        this.workerRunning = false;
+        return;
+      }
+      try {
+        await this.processNext();
+      } catch (err) {
+        log.error('[WikiIngest] worker tick error:', err);
+      }
+      if (!this.workerShouldStop) {
+        this.workerTimer = setTimeout(tick, pollIntervalMs);
+      } else {
+        this.workerRunning = false;
+      }
+    };
+    tick();
+  }
+
+  stopWorker(): void {
+    this.workerShouldStop = true;
+    if (this.workerTimer) {
+      clearTimeout(this.workerTimer);
+      this.workerTimer = null;
+    }
+  }
+
+  private async processNext(): Promise<void> {
+    const job = this.pickNextJob();
+    if (!job) return;
+    try {
+      const sourceContent = fs.readFileSync(job.file_path, 'utf-8');
+      const role = '';  // Phase 4 closure: role injection happens via LLMService.chat() kbContext path
+      const step1Data = await this.step1(sourceContent, role, '', job.id);
+      const step2Data = await this.step2(sourceContent, step1Data, job.id);
+      // Security: LLM is untrusted. Reject absolute paths so path.join can't be coerced
+      // into writing outside wikiDir (e.g. /etc/passwd). Relative paths only.
+      const sourcePagePath = step2Data.sourcePage.path;
+      if (path.isAbsolute(sourcePagePath)) {
+        throw new Error(`LLM returned absolute path for sourcePage: ${sourcePagePath} (must be relative)`);
+      }
+      await this.atomicWrite(
+        path.join(this.deps.wikiDir, sourcePagePath),
+        step2Data.sourcePage.content,
+      );
+      this.db.prepare(`UPDATE kb_ingest_queue SET status = 'done' WHERE id = ?`).run(job.id);
+      log.info(`[WikiIngest] job ${job.id} done: ${job.file_path}`);
+    } catch (err) {
+      log.error(`[WikiIngest] job ${job.id} failed:`, err);
+      this.db.prepare(`UPDATE kb_ingest_queue SET status = 'failed', error = ? WHERE id = ?`).run(String(err), job.id);
+    }
+  }
+
+  // Phase 4: stats for IPC handler `kb:getStats`.
+  getStats(): { pending: number; processing: number; failed: number; lastIngestedAt: string | null } {
+    const counts = this.db.prepare(`
+      SELECT status, COUNT(*) as n FROM kb_ingest_queue GROUP BY status
+    `).all() as Array<{ status: string; n: number }>;
+    let pending = 0, processing = 0, failed = 0;
+    for (const r of counts) {
+      if (r.status === 'pending') pending = r.n;
+      else if (r.status === 'processing') processing = r.n;
+      else if (r.status === 'failed') failed = r.n;
+    }
+    const lastRow = this.db.prepare(`
+      SELECT enqueued_at FROM kb_ingest_queue WHERE status = 'done' ORDER BY enqueued_at DESC LIMIT 1
+    `).get() as { enqueued_at: string } | undefined;
+    return { pending, processing, failed, lastIngestedAt: lastRow?.enqueued_at ?? null };
+  }
+
+  // Phase 4: re-enqueue every enabled source. Used by IPC handler `kb:rebuild`.
+  // Idempotent: removes any pending duplicates before re-enqueuing so a second
+  // call does not double-insert the same path.
+  async rebuildAll(): Promise<{ reEnqueued: number }> {
+    const rows = this.db.prepare(`SELECT path FROM kb_sources WHERE enabled = 1`).all() as { path: string }[];
+    let n = 0;
+    const tx = this.db.transaction((paths: string[]) => {
+      // Remove any pending duplicates so rebuildAll is idempotent
+      const del = this.db.prepare(`DELETE FROM kb_ingest_queue WHERE file_path = ? AND status = 'pending'`);
+      for (const p of paths) {
+        del.run(p);
+      }
+      for (const p of paths) {
+        this.enqueue(p);
+        n++;
+      }
+    });
+    tx(rows.map(r => r.path));
+    return { reEnqueued: n };
   }
 }
