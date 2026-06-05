@@ -65,6 +65,7 @@ function runMigrations(db: Database.Database): void {
     require('./migrations/001_initial'),
     require('./migrations/002_add_parent_id'),
     require('./migrations/003_add_notes'),
+    require('./migrations/004_knowledge_base'),  // NEW (F1)
   ];
 
   const migrateAll = db.transaction(() => {

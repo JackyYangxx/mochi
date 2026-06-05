@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { KbSource, KbStats } from '../types/knowledge-base';
 
 export interface Todo {
   id: string;
@@ -27,6 +28,11 @@ interface TodoStore {
   petState: 'idle' | 'active' | 'speaking';
   petSize: 'small' | 'medium' | 'large';
   petImages: PetImages;
+  // Knowledge base (F3) state
+  kbSources: KbSource[];
+  kbStats: KbStats;
+  kbEnabled: boolean;
+  kbWikiDir: string;
   setTodos: (todos: Todo[]) => void;
   addTodo: (todo: Todo) => void;
   toggleTodo: (id: string) => void;
@@ -41,6 +47,10 @@ interface TodoStore {
   setPetState: (state: 'idle' | 'active' | 'speaking') => void;
   setPetSize: (size: 'small' | 'medium' | 'large') => void;
   setPetImages: (images: PetImages) => void;
+  setKbSources: (s: KbSource[]) => void;
+  setKbStats: (s: KbStats) => void;
+  setKbEnabled: (e: boolean) => void;
+  setKbWikiDir: (d: string) => void;
 }
 
 export const useStore = create<TodoStore>((set) => ({
@@ -52,6 +62,11 @@ export const useStore = create<TodoStore>((set) => ({
   petState: 'idle',
   petSize: 'medium',
   petImages: { idle: null, active: null, speaking: null },
+  // Knowledge base (F3) state
+  kbSources: [],
+  kbStats: { pending: 0, processing: 0, failed: 0, lastIngestedAt: null },
+  kbEnabled: false,
+  kbWikiDir: '',
   setTodos: (todos) => set({ todos }),
   addTodo: (todo) => set((s) => ({ todos: [...s.todos, todo] })),
   toggleTodo: (id) =>
@@ -85,4 +100,8 @@ export const useStore = create<TodoStore>((set) => ({
   setPetState: (state) => set({ petState: state }),
   setPetSize: (size) => set({ petSize: size }),
   setPetImages: (images) => set({ petImages: images }),
+  setKbSources: (s) => set({ kbSources: s }),
+  setKbStats: (s) => set({ kbStats: s }),
+  setKbEnabled: (e) => set({ kbEnabled: e }),
+  setKbWikiDir: (d) => set({ kbWikiDir: d }),
 }));

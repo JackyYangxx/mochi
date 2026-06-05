@@ -2,7 +2,8 @@ release/*
 /node_modules
 dist
 dist-renderer
-test*
+test-results/
+playwright-report/
 
 .DS_Store
 .worktrees/

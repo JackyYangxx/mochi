@@ -1,13 +1,35 @@
-import { ipcMain, app, BrowserWindow } from 'electron';
+import { ipcMain, app, BrowserWindow, dialog, shell } from 'electron';
 import { TodoService } from '../services/TodoService';
 import { SettingsService } from '../services/SettingsService';
 import { DailyReportService } from '../services/DailyReportService';
+import { KnowledgeBaseService } from '../services/KnowledgeBaseService';
+import { RoleService } from '../services/RoleService';
 import fs from 'fs';
 import path from 'path';
 
 let todoService: TodoService;
 let settingsService: SettingsService;
 let dailyReportService: DailyReportService | null = null;
+let kbService: KnowledgeBaseService;
+let kbIngestService: { getStats(): unknown; rebuildAll(): Promise<unknown> } | null = null;
+let roleService: RoleService;
+
+// Setters break the circular import between index.ts and ipc.ts: index.ts
+// constructs the services (they depend on userData dir, role.md path, etc.)
+// and hands them in after registerIpcHandlers has registered the handler
+// closures. IPC events only fire once the renderer mounts, so the gap is safe.
+export function setKbService(svc: KnowledgeBaseService): void {
+  kbService = svc;
+}
+export function setRoleService(svc: RoleService): void {
+  roleService = svc;
+}
+export function setKbIngestService(svc: {
+  getStats(): unknown;
+  rebuildAll(): Promise<unknown>;
+}): void {
+  kbIngestService = svc;
+}
 
 export function registerIpcHandlers(): void {
   todoService = new TodoService();
@@ -163,5 +185,76 @@ export function registerIpcHandlers(): void {
       added.push(result.id);
     }
     return { success: true, count: added.length };
+  });
+
+  // Knowledge Base handlers
+  ipcMain.handle('kb:listSources', () => kbService.listSources());
+  ipcMain.handle('kb:addSource', (_event, dirPath: string) => kbService.addSource(dirPath));
+  ipcMain.handle('kb:removeSource', (_event, dirPath: string) => kbService.removeSource(dirPath));
+  ipcMain.handle('kb:getStats', () => {
+    if (!kbIngestService) {
+      return { pending: 0, processing: 0, failed: 0, lastIngestedAt: null };
+    }
+    return kbIngestService.getStats();
+  });
+  ipcMain.handle('kb:rebuild', async () => {
+    if (!kbIngestService) {
+      throw new Error('WikiIngestService 尚未初始化');
+    }
+    return kbIngestService.rebuildAll();
+  });
+  ipcMain.handle('kb:getWikiDir', () => settingsService.get('kb_wiki_dir') || '');
+  ipcMain.handle('kb:setWikiDir', (_event, dir: string) => {
+    // Validate input: reject empty / whitespace-only / non-absolute paths.
+    if (typeof dir !== 'string' || dir.trim().length === 0) {
+      throw new Error('wiki 目录路径不能为空');
+    }
+    if (!path.isAbsolute(dir)) {
+      throw new Error('wiki 目录必须是绝对路径');
+    }
+    // Normalize so trailing slashes / "." segments don't trip the equality check.
+    const normalizedDir = path.resolve(dir);
+    if (normalizedDir === path.sep) {
+      throw new Error('wiki 目录不能为根目录');
+    }
+    const current = settingsService.get('kb_wiki_dir');
+    const normalizedCurrent = current ? path.resolve(current) : '';
+    if (normalizedCurrent && normalizedCurrent !== normalizedDir) {
+      // F3: block hot-swap, force restart
+      throw new Error('wiki 目录不可热切换，请重启应用后再次修改');
+    }
+    settingsService.set('kb_wiki_dir', normalizedDir);
+    if (!settingsService.get('kb_wiki_dir_last_indexed')) {
+      // F3: bootstrap last-known so the startup check passes on first set
+      settingsService.set('kb_wiki_dir_last_indexed', normalizedDir);
+    }
+    return true;
+  });
+  ipcMain.handle('kb:openRole', () => roleService.openInEditor());
+  ipcMain.handle('kb:resetRole', async () => {
+    await roleService.reset();
+    return true;
+  });
+
+  // Native folder picker (shared by KB "add source" + "change wiki dir")
+  ipcMain.handle('dialog:openDirectory', async (event, defaultPath?: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const options: Electron.OpenDialogOptions = {
+      title: '选择目录',
+      defaultPath: defaultPath || app.getPath('home'),
+      properties: ['openDirectory', 'createDirectory'],
+    };
+    const result = win
+      ? await dialog.showOpenDialog(win, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  // Reveal a path in the OS file manager
+  ipcMain.handle('shell:showInFolder', (_event, target: string) => {
+    if (!target) return false;
+    shell.showItemInFolder(target);
+    return true;
   });
 }

@@ -53,6 +53,25 @@ const api = {
   getApiKey: () => ipcRenderer.invoke('settings:get', 'apiKey'),
   updateSetting: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value),
   setApiKey: (apiKey: string) => ipcRenderer.invoke('settings:set', 'apiKey', apiKey),
+
+  // Knowledge Base (Phase 1)
+  kb: {
+    listSources: () => ipcRenderer.invoke('kb:listSources'),
+    addSource: (dirPath: string) => ipcRenderer.invoke('kb:addSource', dirPath),
+    removeSource: (dirPath: string) => ipcRenderer.invoke('kb:removeSource', dirPath),
+    getStats: () => ipcRenderer.invoke('kb:getStats'),
+    rebuild: () => ipcRenderer.invoke('kb:rebuild'),
+    getWikiDir: () => ipcRenderer.invoke('kb:getWikiDir'),
+    setWikiDir: (dir: string) => ipcRenderer.invoke('kb:setWikiDir', dir),
+    openRole: () => ipcRenderer.invoke('kb:openRole'),
+    resetRole: () => ipcRenderer.invoke('kb:resetRole'),
+  },
+  dialog: {
+    openDirectory: (defaultPath?: string) => ipcRenderer.invoke('dialog:openDirectory', defaultPath),
+  },
+  shell: {
+    showInFolder: (target: string) => ipcRenderer.invoke('shell:showInFolder', target),
+  },
 };
 
 contextBridge.exposeInMainWorld('todoAPI', api);
