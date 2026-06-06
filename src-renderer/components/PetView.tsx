@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './PetView.css';
+import defaultPetGif from '../../assets/pet-default.gif';
 
-const DEFAULT_ICON = `data:image/svg+xml,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><circle cx="64" cy="64" r="60" fill="#a78bfa" opacity="0.3"/><text x="64" y="72" text-anchor="middle" font-size="48" fill="#7c3aed">🐾</text></svg>'
-)}`;
+const DEFAULT_ICON = defaultPetGif;
 
 interface PetViewProps {
   petState?: 'idle' | 'active' | 'speaking';

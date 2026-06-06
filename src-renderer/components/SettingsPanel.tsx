@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './SettingsPanel.css';
 import { useStore } from '../store';
+import defaultPetGif from '../../assets/pet-default.gif';
 
 type TabKey = 'appearance' | 'intelligence' | 'notification' | 'system' | 'kb';
 
@@ -321,7 +322,11 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
         </div>
       );
     }
-    return <div className="pet-image-placeholder" aria-label="未设置">+</div>;
+    return (
+      <div className="pet-image-preview" aria-label={`${PET_STATE_LABELS[state]}默认图片`}>
+        <img src={defaultPetGif} alt={PET_STATE_LABELS[state]} />
+      </div>
+    );
   };
 
   // ============================================================
@@ -349,7 +354,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
       <section className="settings-section">
         <h3>宠物图片</h3>
-        <p className="section-description">为不同状态自定义宠物图片，支持 PNG / JPG / GIF</p>
+        <p className="section-description">为不同状态自定义宠物图片，支持 PNG / JPG / GIF（默认就是一只小猫 🐱）</p>
         <div className="pet-images-grid">
           {(['idle', 'active', 'speaking'] as const).map((state) => (
             <div key={state} className="pet-image-item">
