@@ -48,6 +48,9 @@ const api = {
     return () => ipcRenderer.removeListener('dailyReport:generated', listener);
   },
 
+  // Encouragement phrase generator (powered by LLM when configured).
+  generateEncouragement: () => ipcRenderer.invoke('encouragement:generate'),
+
   // Settings
   getSettings: () => ipcRenderer.invoke('settings:getAll'),
   getApiKey: () => ipcRenderer.invoke('settings:get', 'apiKey'),

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './PetView.css';
 import defaultPetGif from '../../assets/pet-default.gif';
+import { useEncouragement } from '../hooks/useEncouragement';
 
 const DEFAULT_ICON = defaultPetGif;
 
@@ -12,6 +13,7 @@ interface PetViewProps {
     active: string | null;
     speaking: string | null;
   };
+  aiEnabled?: boolean;
   onPetClick?: () => void;
 }
 
@@ -19,18 +21,26 @@ export default function PetView({
   petState = 'idle',
   petSize = 'medium',
   images,
+  aiEnabled = false,
   onPetClick,
 }: PetViewProps) {
-  const [tipsMessage, setTipsMessage] = useState('');
+  const [externalTip, setExternalTip] = useState('');
 
   // Listen for daily report generation
   useEffect(() => {
     const unsubscribe = window.todoAPI.onDailyReportGenerated((path: string) => {
-      setTipsMessage(`日报已生成: ${path}`);
-      setTimeout(() => setTipsMessage(''), 5000);
+      setExternalTip(`日报已生成: ${path}`);
+      setTimeout(() => setExternalTip(''), 5000);
     });
     return unsubscribe;
   }, []);
+
+  const generate = useCallback(() => window.todoAPI.generateEncouragement(), []);
+  const { currentTip } = useEncouragement({
+    aiEnabled,
+    isExternalTipActive: externalTip !== '',
+    generate,
+  });
 
   const handleClick = useCallback(() => {
     console.log('PetView clicked, onPetClick:', !!onPetClick);
@@ -38,12 +48,13 @@ export default function PetView({
   }, [onPetClick]);
 
   const currentImage = images[petState] || images.idle || DEFAULT_ICON;
+  const displayedTip = useMemo(() => externalTip || currentTip, [externalTip, currentTip]);
 
   return (
     <div className={`pet-view pet-size-${petSize}`}>
-      {tipsMessage && (
+      {displayedTip && (
         <div className="pet-tips">
-          {tipsMessage}
+          {displayedTip}
         </div>
       )}
       <div

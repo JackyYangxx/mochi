@@ -4,8 +4,30 @@ import { SettingsService } from '../services/SettingsService';
 import { DailyReportService } from '../services/DailyReportService';
 import { KnowledgeBaseService } from '../services/KnowledgeBaseService';
 import { RoleService } from '../services/RoleService';
+import { LLMService } from '../services/LLMService';
 import fs from 'fs';
 import path from 'path';
+import log from 'electron-log';
+
+// LLMService cache for the encouragement feature. Keyed by the triple of
+// (endpoint, model, apiKey) so that user editing the LLM settings invalidates
+// the cached client and forces a re-configure on the next call.
+let encouragementLLMCache: { service: LLMService; key: string } | null = null;
+
+async function getEncouragementLLM(): Promise<LLMService | null> {
+  const endpoint = settingsService.get('llmEndpoint') || '';
+  const model = settingsService.get('llmModel') || '';
+  const apiKey = settingsService.get('apiKey') || '';
+  if (!endpoint || !model || !apiKey) return null;
+  const key = `${endpoint}|${model}|${apiKey}`;
+  if (encouragementLLMCache && encouragementLLMCache.key === key) {
+    return encouragementLLMCache.service;
+  }
+  const svc = new LLMService();
+  await svc.configure(endpoint, model, apiKey);
+  encouragementLLMCache = { service: svc, key };
+  return svc;
+}
 
 let todoService: TodoService;
 let settingsService: SettingsService;
@@ -51,6 +73,27 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('dailyReport:setReportDir', (_event, dir: string) => {
     settingsService.set('reportDir', dir);
     return true;
+  });
+
+  // Encouragement phrase generator. Returns a short motivational phrase
+  // string, or throws 'not-configured' if LLM endpoint/model/apiKey are
+  // missing. Any other error propagates as 'llm-error'.
+  ipcMain.handle('encouragement:generate', async () => {
+    const llm = await getEncouragementLLM();
+    if (!llm) throw new Error('not-configured');
+    try {
+      const text = await llm.chat({
+        systemPrompt:
+          '你是一只温和、贴心的桌面宠物伙伴。请输出一句简短的鼓励性中文短句(10-20 个字),温暖随意、像朋友陪伴的口吻。' +
+          '不要 emoji,不要引号,不要任何前缀或解释,只输出那一句短句本身。',
+        userPrompt: '说一句鼓励的话',
+        kbContext: false,
+      });
+      return text.trim();
+    } catch (err) {
+      log.error('[encouragement] LLM call failed:', err);
+      throw new Error('llm-error');
+    }
   });
 
   // Todo handlers

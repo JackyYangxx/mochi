@@ -22,6 +22,7 @@ export default function App() {
   const { todos, handleAdd, handleToggle, handleDelete, handleUpdate, handleUpdateNotes, handleAddChild, handleDeleteChild } = useTodos();
   const [editingTodo, setEditingTodo] = React.useState<{ id: string; content: string } | null>(null);
   const [detailTodo, setDetailTodo] = React.useState<{ id: string; content: string; notes: string } | null>(null);
+  const [aiEnabled, setAiEnabled] = React.useState(false);
 
   // Windows drag handling
   const dragState = React.useRef<{ mouseX: number; mouseY: number; didDrag: boolean } | null>(null);
@@ -102,6 +103,18 @@ export default function App() {
     return cleanup;
   }, [setPetImages]);
 
+  // Detect LLM availability from settings. Refresh when the user saves
+  // settings (the same IPC that triggers pet-image refresh above).
+  useEffect(() => {
+    const refreshAi = async () => {
+      const s = await window.todoAPI.getSettings();
+      setAiEnabled(Boolean(s?.llmEndpoint && s?.llmModel && s?.apiKey));
+    };
+    void refreshAi();
+    const cleanup = window.todoAPI.onRefreshPetImages(() => { void refreshAi(); });
+    return cleanup;
+  }, []);
+
   return (
     <div
       className="app-container"
@@ -113,6 +126,7 @@ export default function App() {
         petState={petState}
         petSize={petSize}
         images={petImages}
+        aiEnabled={aiEnabled}
         onPetClick={() => {
           console.log('onPetClick called, __wasDrag:', (window as any).__wasDrag);
           if (!(window as any).__wasDrag) {
