@@ -3,7 +3,7 @@ import { ENCOURAGEMENTS } from '../data/encouragements';
 
 const MIN_INTERVAL_MS = 5 * 60_000;
 const MAX_INTERVAL_MS = 15 * 60_000;
-const DISPLAY_DURATION_MS = 7_000;
+const DISPLAY_DURATION_MS = 30_000;
 const CONFLICT_RETRY_MS = 30_000;
 const RECENT_WINDOW = 10;
 const LLM_TIMEOUT_MS = 8_000;
@@ -88,6 +88,8 @@ export function useEncouragement(opts: UseEncouragementOpts): UseEncouragementRe
   useEffect(() => { tickRef.current = tick; }, [tick]);
 
   useEffect(() => {
+    // 启动时立即展示一次,之后按 5-15 分钟随机间隔继续
+    void tickRef.current();
     const delay = MIN_INTERVAL_MS + Math.random() * (MAX_INTERVAL_MS - MIN_INTERVAL_MS);
     timersRef.current.next = setTimeout(() => { void tickRef.current(); }, delay);
     const timers = timersRef.current;

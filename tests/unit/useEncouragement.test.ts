@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 const FIRST_INTERVAL_MS = 5 * 60_000 + 0.1 * 10 * 60_000; // 6 min
-const DISPLAY_MS = 7_000;
+const DISPLAY_MS = 30_000;
 
 describe('useEncouragement', () => {
   it('uses builtin list when AI is disabled', async () => {
@@ -38,12 +38,18 @@ describe('useEncouragement', () => {
       useEncouragement({ aiEnabled: true, isExternalTipActive: false, generate })
     );
 
+    // 启动时立即触发一次
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(result.current.currentTip).toBe('今天也要记得微笑呀');
+
+    // 经过显示窗口 + 下一个 interval 后,再次调用
     await act(async () => {
       await vi.advanceTimersByTimeAsync(FIRST_INTERVAL_MS + 100);
     });
-
-    expect(generate).toHaveBeenCalledTimes(1);
-    expect(result.current.currentTip).toBe('今天也要记得微笑呀');
+    expect(generate).toHaveBeenCalledTimes(2);
   });
 
   it('falls back to builtin list when AI call fails', async () => {

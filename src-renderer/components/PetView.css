@@ -1,10 +1,11 @@
 .pet-view {
   width: 128px;
-  height: 128px;
+  height: 168px;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: center;
   transition: opacity 0.2s ease;
   -webkit-app-region: no-drag;
   position: relative;
@@ -12,40 +13,92 @@
 
 .pet-size-small.pet-view {
   width: 80px;
-  height: 80px;
+  height: 120px;
 }
 
 .pet-size-medium.pet-view {
   width: 128px;
-  height: 128px;
+  height: 168px;
 }
 
 .pet-size-large.pet-view {
   width: 192px;
-  height: 192px;
+  height: 232px;
+}
+
+@property --ring-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
 }
 
 .pet-tips {
   position: absolute;
-  top: -40px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(124, 58, 237, 0.95);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    conic-gradient(
+      from var(--ring-angle),
+      #7c3aed 0%,
+      #ec4899 20%,
+      #f59e0b 40%,
+      #10b981 60%,
+      #3b82f6 80%,
+      #7c3aed 100%
+    ) border-box;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  color: #4c1d95;
+  padding: 8px 14px;
   font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
-  max-width: 300px;
+  max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
-  animation: tips-fade 0.3s ease;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.25);
   z-index: 1000;
+  transform-origin: bottom center;
+  --ring-angle: 0deg;
+  animation:
+    tips-bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    tips-ring 3s linear 0.5s infinite;
 }
 
-@keyframes tips-fade {
-  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+.pet-tips::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #ffffff;
+}
+
+@keyframes tips-bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.3) translateY(6px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.1) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+}
+
+@keyframes tips-ring {
+  to {
+    --ring-angle: 360deg;
+  }
 }
 
 .pet-image {
