@@ -1,6 +1,6 @@
 {
   "name": "mochi",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "description": "Mochi — 桌面宠物形态的 AI 智能待办助手，支持语音输入、快捷键添加、智能提醒与本地知识库。",
   "main": "dist/main/index.js",
   "scripts": {
