@@ -87,7 +87,8 @@ describe('TodoService', () => {
         'Trimmed content',
         1,
         expect.any(String),
-        expect.any(String)
+        expect.any(String),
+        null
       );
     });
 
@@ -96,12 +97,12 @@ describe('TodoService', () => {
       expect(() => service.add({ content: '   ' })).toThrow('Content cannot be empty');
     });
 
-    it('truncates content longer than 500 characters', () => {
+    it('stores full content without truncation', () => {
       mockGet
         .mockReturnValueOnce({ next: 1 })
         .mockReturnValueOnce({
           id: 'test-uuid-123',
-          content: 'a'.repeat(500),
+          content: 'a'.repeat(600),
           sort_order: 1,
           created_at: '2024-01-01T00:00:00.000Z',
           updated_at: '2024-01-01T00:00:00.000Z',
@@ -114,10 +115,11 @@ describe('TodoService', () => {
 
       expect(mockRun).toHaveBeenCalledWith(
         'test-uuid-123',
-        'a'.repeat(500),
+        'a'.repeat(600),
         1,
         expect.any(String),
-        expect.any(String)
+        expect.any(String),
+        null
       );
     });
   });

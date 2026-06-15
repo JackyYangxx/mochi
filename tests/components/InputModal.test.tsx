@@ -34,7 +34,7 @@ describe('InputModal', () => {
     expect(onAdd).toHaveBeenCalledWith('Test todo');
   });
 
-  it('truncates text to 500 characters on Enter', () => {
+  it('submits full text on Enter without truncation', () => {
     const onAdd = vi.fn();
     const onClose = vi.fn();
     render(<InputModal onAdd={onAdd} onClose={onClose} />);
@@ -44,7 +44,7 @@ describe('InputModal', () => {
     fireEvent.change(input, { target: { value: longText } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    expect(onAdd).toHaveBeenCalledWith('a'.repeat(500));
+    expect(onAdd).toHaveBeenCalledWith(longText);
   });
 
   it('does not call onAdd on Enter when input is empty', () => {
@@ -106,13 +106,13 @@ describe('InputModal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('enforces maxLength of 500 on input', () => {
+  it('does not enforce a 500-character maxLength (multi-line textarea)', () => {
     const onAdd = vi.fn();
     const onClose = vi.fn();
     render(<InputModal onAdd={onAdd} onClose={onClose} />);
 
-    const input = screen.getByRole('textbox') as HTMLInputElement;
-    expect(input.maxLength).toBe(500);
+    const input = screen.getByRole('textbox') as HTMLTextAreaElement;
+    expect(input.maxLength).not.toBe(500);
   });
 
   it('focuses input on mount', () => {
