@@ -90,6 +90,24 @@ pnpm dev                     # 开发模式（Vite dev server + Electron）
 
 **注意：** Windows 构建在 macOS 上会因 Wine 问题导致 exe 版本信息写入失败，但 exe 本身可正常运行。
 
+**⚠️ 多平台构建必须顺序执行，不可并行：**
+
+`electron-builder` 在构建过程中会 rebuild native 模块（如 `better-sqlite3`）到 `node_modules/{pkg}/build/Release/{pkg}.node`。macOS 与 Windows 共享同一 `node_modules/`，若并行构建会产生竞态：先跑的进程 rebuild 成平台 A 的二进制，后跑的进程看到文件已存在就跳过，结果平台 B 的包内塞的是平台 A 的二进制。
+
+历史事故：1.0.27 并行构建导致 Windows 包内 `better_sqlite3.node` 是 Mach-O arm64 而非 PE32+ DLL，运行后进程静默退出（无窗口无错误弹窗）。
+
+构建多平台时：
+```bash
+# Windows 先
+pnpm build && pnpm electron-builder --win --x64 --dir
+# 验证 .node 是 PE32+
+file release/win-unpacked/resources/app/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+# 再 macOS
+pnpm electron-builder --mac --arm64
+# 验证 .node 是 Mach-O
+file release/mac-arm64/Mochi.app/Contents/Resources/app/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+```
+
 ## 架构要点
 
 ### 主进程 vs 渲染进程
