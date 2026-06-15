@@ -68,6 +68,9 @@ export function createMainWindow(): BrowserWindow {
       nodeIntegration: false,
       sandbox: false,
       webSecurity: false,
+      // 禁用后台限流,让宠物 GIF 在其他应用获焦时仍持续动画。
+      // 代价是未聚焦时仍消耗少量 CPU,对悬浮宠物窗口可忽略。
+      backgroundThrottling: false,
     },
   });
 
@@ -77,6 +80,18 @@ export function createMainWindow(): BrowserWindow {
 
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   mainWindow.setAlwaysOnTop(true, 'floating');
+
+  // 跨 DPI 显示器拖动时,Windows 会自动 resize 窗口以保持物理尺寸,
+  // 导致 CSS 像素宽度变化,UI 拉伸变长。强制回到 320×540。
+  const resetSize = (): void => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const [w, h] = mainWindow.getSize();
+    if (w !== 320 || h !== 540) {
+      mainWindow.setSize(320, 540);
+    }
+  };
+  screen.on('display-metrics-changed', resetSize);
+  mainWindow.on('moved', resetSize);
 
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log('[Renderer Console]', message);
