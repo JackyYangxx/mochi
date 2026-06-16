@@ -1,10 +1,16 @@
-import { BrowserWindow, screen, nativeImage } from 'electron';
+import { BrowserWindow, screen, nativeImage, ipcMain } from 'electron';
 import path from 'path';
 import { SettingsService } from '../services/SettingsService';
 
 let mainWindow: BrowserWindow | null = null;
 let isInteracting = false;
 let settingsService: SettingsService | null = null;
+
+// 窗口尺寸常量。todo list 默认高度 = 屏幕 40–50%,以 1080p 屏幕 (1080px) 为基准
+// 大约 520px,加 pet (168px) + padding ≈ 700px。折叠后只留 pet 区域。
+const WINDOW_WIDTH = 320;
+const WINDOW_HEIGHT_EXPANDED = 700;
+const WINDOW_HEIGHT_COLLAPSED = 220;
 
 export function saveWindowPosition(win: BrowserWindow): void {
   if (!settingsService) {
@@ -50,8 +56,8 @@ export function createMainWindow(): BrowserWindow {
   console.log('[Window] preload exists:', require('fs').existsSync(preloadPath));
 
   mainWindow = new BrowserWindow({
-    width: 320,
-    height: 540,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT_EXPANDED,
     x: initialPos?.x,
     y: initialPos?.y,
     frame: false,
@@ -82,16 +88,39 @@ export function createMainWindow(): BrowserWindow {
   mainWindow.setAlwaysOnTop(true, 'floating');
 
   // 跨 DPI 显示器拖动时,Windows 会自动 resize 窗口以保持物理尺寸,
-  // 导致 CSS 像素宽度变化,UI 拉伸变长。强制回到 320×540。
+  // 导致 CSS 像素宽度变化,UI 拉伸变长。强制回到当前折叠状态对应的高度。
+  let isCollapsed = false;
+  const targetHeight = (): number =>
+    isCollapsed ? WINDOW_HEIGHT_COLLAPSED : WINDOW_HEIGHT_EXPANDED;
   const resetSize = (): void => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const [w, h] = mainWindow.getSize();
-    if (w !== 320 || h !== 540) {
-      mainWindow.setSize(320, 540);
+    if (w !== WINDOW_WIDTH || h !== targetHeight()) {
+      mainWindow.setSize(WINDOW_WIDTH, targetHeight());
     }
   };
   screen.on('display-metrics-changed', resetSize);
   mainWindow.on('moved', resetSize);
+
+  // 失焦再获焦后,Windows 软件合成路径上的 GIF 解码器有时不会自动恢复。
+  // 主动通知渲染端刷新 <img src> (加 cache-busting query) 强制解码器重启。
+  mainWindow.on('focus', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.webContents.send('pet-gif-reload');
+  });
+
+  // 渲染端点击折叠按钮后,resize 窗口并保持底边位置不变 (pet 不会跳)。
+  ipcMain.removeHandler('window:setCollapsed');
+  ipcMain.handle('window:setCollapsed', (_event, collapsed: boolean) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    isCollapsed = !!collapsed;
+    const newH = targetHeight();
+    const [x, y] = mainWindow.getPosition();
+    const [, currentH] = mainWindow.getSize();
+    const bottomY = y + currentH;
+    mainWindow.setSize(WINDOW_WIDTH, newH);
+    mainWindow.setPosition(x, bottomY - newH);
+  });
 
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log('[Renderer Console]', message);

@@ -27,6 +27,11 @@ body {
   -webkit-app-region: drag;
 }
 
+.app-container.collapsed {
+  justify-content: flex-start;
+  padding-top: 4px;
+}
+
 .app-content {
   flex: 1;
   display: flex;

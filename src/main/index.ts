@@ -22,6 +22,17 @@ import fs from 'fs';
 // Disable hardware acceleration to prevent black screen on Windows
 app.disableHardwareAcceleration();
 
+// 桌面宠物在失焦后仍需保持 GIF 动画。app.disableHardwareAcceleration() 让
+// Windows 走软件合成路径,合成器对失焦/被遮挡窗口有额外的节流,仅靠
+// webPreferences.backgroundThrottling (Blink JS 侧) 管不到合成器/图片解码器
+// 这条路径。补齐三个开关以彻底关闭后台 throttle:
+//   - disable-background-timer-throttling: 失焦时仍跑 timers
+//   - disable-renderer-backgrounding:     失焦时仍调度渲染
+//   - disable-backgrounding-occluded-windows: Windows 特有的 occlusion throttle
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+
 log.initialize();
 
 let isQuitting = false;

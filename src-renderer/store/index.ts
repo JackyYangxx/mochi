@@ -28,6 +28,8 @@ interface TodoStore {
   petState: 'idle' | 'active' | 'speaking';
   petSize: 'small' | 'medium' | 'large';
   petImages: PetImages;
+  // 折叠/展开 todo list: true = 只显示 pet,窗口缩到最小
+  isCollapsed: boolean;
   // Knowledge base (F3) state
   kbSources: KbSource[];
   kbStats: KbStats;
@@ -47,6 +49,7 @@ interface TodoStore {
   setPetState: (state: 'idle' | 'active' | 'speaking') => void;
   setPetSize: (size: 'small' | 'medium' | 'large') => void;
   setPetImages: (images: PetImages) => void;
+  setIsCollapsed: (collapsed: boolean) => void;
   setKbSources: (s: KbSource[]) => void;
   setKbStats: (s: KbStats) => void;
   setKbEnabled: (e: boolean) => void;
@@ -62,6 +65,7 @@ export const useStore = create<TodoStore>((set) => ({
   petState: 'idle',
   petSize: 'medium',
   petImages: { idle: null, active: null, speaking: null },
+  isCollapsed: false,
   // Knowledge base (F3) state
   kbSources: [],
   kbStats: { pending: 0, processing: 0, failed: 0, lastIngestedAt: null },
@@ -100,6 +104,7 @@ export const useStore = create<TodoStore>((set) => ({
   setPetState: (state) => set({ petState: state }),
   setPetSize: (size) => set({ petSize: size }),
   setPetImages: (images) => set({ petImages: images }),
+  setIsCollapsed: (isCollapsed) => set({ isCollapsed }),
   setKbSources: (s) => set({ kbSources: s }),
   setKbStats: (s) => set({ kbStats: s }),
   setKbEnabled: (e) => set({ kbEnabled: e }),

@@ -14,6 +14,7 @@ export default function App() {
   const showInput = useStore((s) => s.showInput);
   const showSettings = useStore((s) => s.showSettings);
   const addingSubtaskForId = useStore((s) => s.addingSubtaskForId);
+  const isCollapsed = useStore((s) => s.isCollapsed);
   const setShowInput = useStore((s) => s.setShowInput);
   const setShowSettings = useStore((s) => s.setShowSettings);
   const setAddingSubtaskForId = useStore((s) => s.setAddingSubtaskForId);
@@ -115,9 +116,14 @@ export default function App() {
     return cleanup;
   }, []);
 
+  // 折叠/展开状态变化时通知主进程 resize 窗口。窗口底边锚定,pet 不跳。
+  useEffect(() => {
+    void window.todoAPI.setWindowCollapsed(isCollapsed);
+  }, [isCollapsed]);
+
   return (
     <div
-      className="app-container"
+      className={`app-container ${isCollapsed ? 'collapsed' : ''}`}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => setPetState('active')}
       onMouseLeave={() => setPetState('idle')}
@@ -137,18 +143,20 @@ export default function App() {
         }}
       />
       <div className="app-content">
-        <TodoList
-          todos={todos}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-          onEdit={(id, content) => setEditingTodo({ id, content })}
-          onDetail={(todo) => setDetailTodo({ id: todo.id, content: todo.content, notes: todo.notes || '' })}
-          onRequestAddChild={(parentId) => {
-            setAddingSubtaskForId(parentId);
-            setShowInput(true);
-          }}
-          onDeleteChild={handleDeleteChild}
-        />
+        {!isCollapsed && (
+          <TodoList
+            todos={todos}
+            onToggle={handleToggle}
+            onDelete={handleDelete}
+            onEdit={(id, content) => setEditingTodo({ id, content })}
+            onDetail={(todo) => setDetailTodo({ id: todo.id, content: todo.content, notes: todo.notes || '' })}
+            onRequestAddChild={(parentId) => {
+              setAddingSubtaskForId(parentId);
+              setShowInput(true);
+            }}
+            onDeleteChild={handleDeleteChild}
+          />
+        )}
       </div>
       {showInput && (
         <InputModal

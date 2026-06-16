@@ -6,6 +6,7 @@ const api = {
   dragWindow: () => ipcRenderer.send('window:drag'),
   moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.send('window:move', deltaX, deltaY),
   getWindowPosition: () => ipcRenderer.invoke('window:getPosition'),
+  setWindowCollapsed: (collapsed: boolean) => ipcRenderer.invoke('window:setCollapsed', collapsed),
   onRefreshPetImages: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on('refresh-pet-images', listener);
@@ -15,6 +16,11 @@ const api = {
     const listener = () => callback();
     ipcRenderer.on('open-settings', listener);
     return () => ipcRenderer.removeListener('open-settings', listener);
+  },
+  onPetGifReload: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('pet-gif-reload', listener);
+    return () => ipcRenderer.removeListener('pet-gif-reload', listener);
   },
   onTriggerInput: (callback: () => void) => {
     const listener = () => callback();
