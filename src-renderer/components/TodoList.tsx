@@ -22,6 +22,7 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onDetail, 
   const childSortTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevTopLevelRef = React.useRef<Todo[]>([]);
   const prevChildRef = React.useRef<Todo[]>([]);
+  const prevChildCountsRef = React.useRef<Record<string, number>>({});
   const lastProcessedChildRef = React.useRef<string | null>(null);
 
   const getChildren = (parentId: string) => todos.filter(t => t.parentId === parentId);
@@ -42,7 +43,8 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onDetail, 
     return prev && prev.isCompleted !== t.isCompleted;
   });
 
-  // Top-level: detect completion change, delay sort, then apply
+  // Top-level: detect completion change, delay sort, then apply.
+  // Also detect addition/deletion and reset sortedIds so new todos sort correctly.
   React.useLayoutEffect(() => {
     const prevTopLevel = prevTopLevelRef.current;
     prevTopLevelRef.current = [...topLevelTodos];
@@ -51,6 +53,11 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onDetail, 
       const prev = prevTopLevel.find(pt => pt.id === t.id);
       return prev && prev.isCompleted !== t.isCompleted;
     });
+
+    const idSetChanged =
+      prevTopLevel.length !== topLevelTodos.length ||
+      topLevelTodos.some(t => !prevTopLevel.find(pt => pt.id === t.id)) ||
+      prevTopLevel.some(pt => !topLevelTodos.find(t => t.id === pt.id));
 
     if (changed) {
       if (pendingSortTimerRef.current) {
@@ -63,6 +70,8 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onDetail, 
         setSortedIds(sorted);
         pendingSortTimerRef.current = null;
       }, 650);
+    } else if (idSetChanged && sortedIds.length > 0) {
+      setSortedIds([]);
     } else if (!topLevelTodos.some(t => t.isCompleted) && sortedIds.length > 0) {
       setSortedIds([]);
     }
@@ -118,6 +127,26 @@ export default function TodoList({ todos, onToggle, onDelete, onEdit, onDetail, 
         }, 650);
       }
     }
+  }, [todos]);
+
+  // Auto-expand parent when a new child todo is added
+  React.useEffect(() => {
+    const newCounts: Record<string, number> = {};
+    todos.filter(t => t.parentId).forEach(t => {
+      newCounts[t.parentId!] = (newCounts[t.parentId!] || 0) + 1;
+    });
+
+    const prev = prevChildCountsRef.current;
+    for (const [parentId, count] of Object.entries(newCounts)) {
+      if ((prev[parentId] || 0) < count) {
+        setExpandedIds(prevIds => {
+          const next = new Set(prevIds);
+          next.add(parentId);
+          return next;
+        });
+      }
+    }
+    prevChildCountsRef.current = newCounts;
   }, [todos]);
 
   if (todos.length === 0) {

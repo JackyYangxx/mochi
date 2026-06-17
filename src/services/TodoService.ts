@@ -74,9 +74,15 @@ export class TodoService {
   getAll(): Todo[] {
     const db = getDb();
     const rows = db
-      .prepare('SELECT * FROM todos ORDER BY sort_order ASC, created_at DESC')
+      .prepare('SELECT * FROM todos ORDER BY is_completed ASC, sort_order ASC, created_at DESC')
       .all() as TodoRow[];
     return rows.map(rowToTodo);
+  }
+
+  clearAllCompleted(): number {
+    const db = getDb();
+    const result = db.prepare('DELETE FROM todos WHERE is_completed = 1').run();
+    return result.changes;
   }
 
   toggle(id: string): Todo {
