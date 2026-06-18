@@ -27,9 +27,10 @@ body {
   -webkit-app-region: drag;
 }
 
+/* 折叠时窗口顶边锚定、不动位置;pet 留在原处。
+ * 不能加 padding-top/margin-top,任何内边距变化都会让 pet 相对位置跳一下。 */
 .app-container.collapsed {
   justify-content: flex-start;
-  padding-top: 4px;
 }
 
 .app-content {

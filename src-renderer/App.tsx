@@ -116,8 +116,10 @@ export default function App() {
     return cleanup;
   }, []);
 
-  // 折叠/展开状态变化时通知主进程 resize 窗口。窗口底边锚定,pet 不跳。
-  useEffect(() => {
+  // 折叠/展开状态变化时通知主进程 resize 窗口。必须用 useLayoutEffect
+  // (而不是 useEffect),在浏览器 paint 之前同步发起 IPC,否则中间会
+  // 多一帧"DOM 已折叠但窗口还是 700px"的不一致画面,造成视觉抖动。
+  React.useLayoutEffect(() => {
     void window.todoAPI.setWindowCollapsed(isCollapsed);
   }, [isCollapsed]);
 

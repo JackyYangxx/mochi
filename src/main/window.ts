@@ -109,17 +109,16 @@ export function createMainWindow(): BrowserWindow {
     mainWindow.webContents.send('pet-gif-reload');
   });
 
-  // 渲染端点击折叠按钮后,resize 窗口并保持底边位置不变 (pet 不会跳)。
+  // 渲染端点击折叠按钮后,resize 窗口并保持顶边位置不变 —— 窗口原位缩放,
+  // 不会上跳/下跳。todo list 区域被裁掉,pet 留在原处。
   ipcMain.removeHandler('window:setCollapsed');
   ipcMain.handle('window:setCollapsed', (_event, collapsed: boolean) => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     isCollapsed = !!collapsed;
     const newH = targetHeight();
     const [x, y] = mainWindow.getPosition();
-    const [, currentH] = mainWindow.getSize();
-    const bottomY = y + currentH;
     mainWindow.setSize(WINDOW_WIDTH, newH);
-    mainWindow.setPosition(x, bottomY - newH);
+    // 顶边 y 不变,底边自然上移。不调用 setPosition,避免任何位移。
   });
 
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
