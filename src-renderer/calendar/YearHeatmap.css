@@ -25,7 +25,7 @@
 .heatmap-cell.count-6 { background: var(--cal-cell-bg-6); }
 .heatmap-cell.count-11 { background: var(--cal-cell-bg-11); }
 
-.heatmap-cell[data-in-year="true"]:not(.count-0):hover {
+.heatmap-cell:not(.out-of-year):not(.count-0):hover {
   transform: scale(1.4);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   z-index: 1;

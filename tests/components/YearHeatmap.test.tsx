@@ -28,4 +28,13 @@ describe('YearHeatmap', () => {
     render(<YearHeatmap year={2026} heatmap={heatmap} onMonthClick={vi.fn()} />);
     expect(screen.getByTestId('heatmap-cell-2026-04-15').className).toMatch(/count-11/);
   });
+
+  it('marks out-of-year cells (Jan 1, 2026 is a Thursday → grid starts on Dec 28, 2025)', () => {
+    const onMonthClick = vi.fn();
+    render(<YearHeatmap year={2026} heatmap={new Map()} onMonthClick={onMonthClick} />);
+    const prevYearCell = screen.getByTestId('heatmap-cell-2025-12-28');
+    expect(prevYearCell.className).toMatch(/out-of-year/);
+    fireEvent.click(prevYearCell);
+    expect(onMonthClick).not.toHaveBeenCalled();
+  });
 });

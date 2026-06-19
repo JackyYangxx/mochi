@@ -46,6 +46,15 @@ export function YearHeatmap({ year, heatmap, onMonthClick }: Props) {
           'heatmap-cell',
           inYear ? colorClass(count) : 'out-of-year',
         ].join(' ');
+        const handleClick = inYear ? () => onMonthClick(year, date.getMonth() + 1) : undefined;
+        const handleKeyDown = inYear
+          ? (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleClick!();
+              }
+            }
+          : undefined;
         return (
           <div
             key={dateStr}
@@ -53,9 +62,11 @@ export function YearHeatmap({ year, heatmap, onMonthClick }: Props) {
             data-testid={`heatmap-cell-${dateStr}`}
             data-in-year={inYear ? 'true' : 'false'}
             title={inYear ? `${dateStr} · ${count} 个待办` : ''}
-            onClick={inYear ? () => onMonthClick(year, date.getMonth() + 1) : undefined}
+            onClick={handleClick}
+            onKeyDown={handleKeyDown}
             role={inYear ? 'button' : undefined}
             tabIndex={inYear ? 0 : undefined}
+            aria-label={inYear ? dateStr : undefined}
           />
         );
       })}
