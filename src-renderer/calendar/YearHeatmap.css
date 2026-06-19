@@ -1,0 +1,32 @@
+.year-heatmap {
+  display: grid;
+  grid-template-columns: repeat(53, 1fr);
+  grid-template-rows: repeat(7, 1fr);
+  gap: 2px;
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  height: 84px;
+}
+
+.heatmap-cell {
+  border-radius: 2px;
+  background: var(--cal-cell-bg);
+  transition: transform 0.1s ease;
+}
+
+.heatmap-cell.out-of-year {
+  visibility: hidden;
+}
+
+.heatmap-cell.count-1 { background: var(--cal-cell-bg-1); }
+.heatmap-cell.count-3 { background: var(--cal-cell-bg-3); }
+.heatmap-cell.count-6 { background: var(--cal-cell-bg-6); }
+.heatmap-cell.count-11 { background: var(--cal-cell-bg-11); }
+
+.heatmap-cell[data-in-year="true"]:not(.count-0):hover {
+  transform: scale(1.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  z-index: 1;
+}
