@@ -33,6 +33,11 @@ export function useCalendarData(year: number, month: number) {
   }, [year, month]);
 
   const selectDay = useCallback((date: string) => {
+    if (!date) {
+      setSelectedDate(null);
+      setDayTodos(null);
+      return;
+    }
     setSelectedDate(date);
     window.todoAPI.getDayTodos(date).then(setDayTodos);
   }, []);
