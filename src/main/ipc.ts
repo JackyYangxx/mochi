@@ -5,6 +5,7 @@ import { DailyReportService } from '../services/DailyReportService';
 import { KnowledgeBaseService } from '../services/KnowledgeBaseService';
 import { RoleService } from '../services/RoleService';
 import { LLMService } from '../services/LLMService';
+import { CalendarService } from '../services/CalendarService';
 import fs from 'fs';
 import path from 'path';
 import log from 'electron-log';
@@ -105,6 +106,24 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('todos:updateNotes', (_event, id: string, notes: string) => todoService.updateNotes(id, notes));
   ipcMain.handle('todos:search', (_event, query: string) => todoService.search(query));
   ipcMain.handle('todos:updateSortOrder', (_event, ids: string[]) => todoService.updateSortOrder(ids));
+
+  // Calendar handlers
+  const calendarService = new CalendarService();
+  ipcMain.handle('calendar:getMonthStats', (_event, year: number, month: number) =>
+    calendarService.getMonthStats(year, month)
+  );
+  ipcMain.handle('calendar:getYearHeatmap', (_event, year: number) =>
+    calendarService.getYearHeatmap(year)
+  );
+  ipcMain.handle('calendar:getDayTodos', (_event, date: string) =>
+    calendarService.getDayTodos(date)
+  );
+  ipcMain.handle('calendar:window:open', () => {
+    import('./calendarWindow').then((m) => m.openCalendarWindow());
+  });
+  ipcMain.handle('calendar:window:close', () => {
+    import('./calendarWindow').then((m) => m.closeCalendarWindow());
+  });
 
   // Settings handlers
   ipcMain.handle('settings:getAll', () => settingsService.getAll());

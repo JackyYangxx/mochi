@@ -57,6 +57,16 @@ const api = {
   // Encouragement phrase generator (powered by LLM when configured).
   generateEncouragement: () => ipcRenderer.invoke('encouragement:generate'),
 
+  // Calendar
+  openCalendarWindow: () => ipcRenderer.invoke('calendar:window:open'),
+  closeCalendarWindow: () => ipcRenderer.invoke('calendar:window:close'),
+  getMonthStats: (year: number, month: number) =>
+    ipcRenderer.invoke('calendar:getMonthStats', year, month),
+  getYearHeatmap: (year: number) =>
+    ipcRenderer.invoke('calendar:getYearHeatmap', year),
+  getDayTodos: (date: string) =>
+    ipcRenderer.invoke('calendar:getDayTodos', date),
+
   // Settings
   getSettings: () => ipcRenderer.invoke('settings:getAll'),
   getApiKey: () => ipcRenderer.invoke('settings:get', 'apiKey'),
