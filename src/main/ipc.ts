@@ -6,6 +6,7 @@ import { KnowledgeBaseService } from '../services/KnowledgeBaseService';
 import { RoleService } from '../services/RoleService';
 import { LLMService } from '../services/LLMService';
 import { CalendarService } from '../services/CalendarService';
+import { openCalendarWindow, closeCalendarWindow } from './calendarWindow';
 import fs from 'fs';
 import path from 'path';
 import log from 'electron-log';
@@ -118,13 +119,11 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('calendar:getDayTodos', (_event, date: string) =>
     calendarService.getDayTodos(date)
   );
-  ipcMain.handle('calendar:window:open', async () => {
-    const m = await import('./calendarWindow');
-    m.openCalendarWindow();
+  ipcMain.handle('calendar:window:open', () => {
+    openCalendarWindow();
   });
-  ipcMain.handle('calendar:window:close', async () => {
-    const m = await import('./calendarWindow');
-    m.closeCalendarWindow();
+  ipcMain.handle('calendar:window:close', () => {
+    closeCalendarWindow();
   });
 
   // Settings handlers
