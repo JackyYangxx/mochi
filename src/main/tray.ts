@@ -1,6 +1,7 @@
 import { Tray, Menu, app, nativeImage } from 'electron';
 import { getMainWindow } from './window';
 import { openSettingsWindow } from './settingsWindow';
+import { openCalendarWindow } from './calendarWindow';
 import path from 'path';
 
 let tray: Tray | null = null;
@@ -39,6 +40,13 @@ export function createTray(): Tray {
           win.show();
           win.focus();
         }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Calendar',
+      click: () => {
+        openCalendarWindow();
       },
     },
     { type: 'separator' },

@@ -3,11 +3,11 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 
-function injectSettingsAssets() {
+function injectWindowAssets() {
   let buildStarted = false;
 
   return {
-    name: 'inject-settings-assets',
+    name: 'inject-window-assets',
     apply: 'build',
     buildStart() {
       buildStarted = true;
@@ -16,7 +16,6 @@ function injectSettingsAssets() {
       if (!buildStarted) return;
 
       const distDir = path.join(__dirname, 'dist-renderer');
-      const settingsHtmlPath = path.join(distDir, 'src-renderer', 'settings.html');
       const assetsDir = path.join(distDir, 'assets');
 
       if (!fs.existsSync(assetsDir)) {
@@ -25,42 +24,58 @@ function injectSettingsAssets() {
       }
 
       const files = fs.readdirSync(assetsDir);
-      // Look for settings-specific entry point
-      const settingsJs = files.find(f => f.startsWith('settings-') && f.endsWith('.js'));
-      const settingsCss = files.find(f => f.startsWith('settings-') && f.endsWith('.css'));
-      // Also use SettingsPanel CSS if settings CSS not found
-      const settingsPanelCss = files.find(f => f.startsWith('SettingsPanel-') && f.endsWith('.css'));
 
-      console.log('Files in assets:', files);
-      console.log('Found settingsJs:', settingsJs, 'settingsCss:', settingsCss, 'settingsPanelCss:', settingsPanelCss);
+      // Settings window
+      injectFor(files, distDir, path.join(distDir, 'src-renderer', 'settings.html'), 'settings', 'SettingsPanel');
 
-      if (settingsJs && fs.existsSync(settingsHtmlPath)) {
-        // Use SettingsPanel CSS for full styles, plus settings CSS for scrollbar hiding
-        const settingsCssLink = settingsCss ? `<link rel="stylesheet" crossorigin href="../assets/${settingsCss}">` : '';
-        const panelCssLink = settingsPanelCss ? `<link rel="stylesheet" crossorigin href="../assets/${settingsPanelCss}">` : '';
-        const html = `<!DOCTYPE html>
+      // Calendar window
+      injectFor(files, distDir, path.join(distDir, 'src-renderer', 'calendar.html'), 'calendar', null);
+    },
+  };
+}
+
+function injectFor(
+  files: string[],
+  distDir: string,
+  htmlPath: string,
+  entryPrefix: string,
+  cssFallbackPrefix: string | null
+): void {
+  if (!fs.existsSync(htmlPath)) return;
+  const entryJs = files.find(f => f.startsWith(`${entryPrefix}-`) && f.endsWith('.js'));
+  if (!entryJs) return;
+
+  const entryCss = files.find(f => f.startsWith(`${entryPrefix}-`) && f.endsWith('.css'));
+  const fallbackCss = cssFallbackPrefix
+    ? files.find(f => f.startsWith(`${cssFallbackPrefix}-`) && f.endsWith('.css'))
+    : undefined;
+
+  const cssLinks = [
+    entryCss ? `<link rel="stylesheet" crossorigin href="../assets/${entryCss}">` : '',
+    fallbackCss ? `<link rel="stylesheet" crossorigin href="../assets/${fallbackCss}">` : '',
+  ].filter(Boolean).join('\n  ');
+
+  const title = entryPrefix === 'calendar' ? 'Mochi - Calendar' : 'Mochi - Settings';
+
+  const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mochi - Settings</title>
-  <script type="module" crossorigin src="../assets/${settingsJs}"></script>
-  ${settingsCssLink}
-  ${panelCssLink}
+  <title>${title}</title>
+  <script type="module" crossorigin src="../assets/${entryJs}"></script>
+  ${cssLinks}
 </head>
 <body>
   <div id="root"></div>
 </body>
 </html>`;
-        fs.writeFileSync(settingsHtmlPath, html);
-        console.log('Injected assets into settings.html:', settingsJs, settingsCss, settingsPanelCss);
-      }
-    }
-  };
+  fs.writeFileSync(htmlPath, html);
+  console.log(`Injected assets into ${path.basename(htmlPath)}: ${entryJs}`);
 }
 
 export default defineConfig({
-  plugins: [react(), injectSettingsAssets()],
+  plugins: [react(), injectWindowAssets()],
   root: '.',
   base: './',
   build: {
@@ -70,6 +85,7 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         settings: path.resolve(__dirname, 'src-renderer/settings.html'),
+        calendar: path.resolve(__dirname, 'src-renderer/calendar.html'),
       },
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
