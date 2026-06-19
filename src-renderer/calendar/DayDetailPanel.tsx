@@ -15,7 +15,7 @@ function formatHHmm(iso: string): string {
 
 export function DayDetailPanel({ date, todos, onClose }: Props) {
   return (
-    <aside className="day-panel" data-testid="day-panel" role="dialog" aria-label={`${date} 完成清单`}>
+    <aside className="day-panel" data-testid="day-panel" role="complementary" aria-label={`${date} 完成清单`}>
       <header className="day-panel-header">
         <h2 data-testid="panel-title">{date} · {todos.length} 项已完成</h2>
         <button

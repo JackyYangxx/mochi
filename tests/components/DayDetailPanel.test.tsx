@@ -32,7 +32,7 @@ describe('DayDetailPanel', () => {
     render(
       <DayDetailPanel date="2026-06-15" todos={[]} onClose={vi.fn()} />
     );
-    expect(screen.getByTestId('panel-empty').textContent).toContain('没有');
+    expect(screen.getByTestId('panel-empty').textContent).toContain('这天没有完成的待办');
   });
 
   it('clicking the close button calls onClose', () => {
