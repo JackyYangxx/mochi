@@ -54,7 +54,11 @@ metadata:
 
 ### 预加载脚本
 
-- **`src/preload/index.ts`** —— 在 `window.calendarAPI` 暴露上述 IPC 方法
+- **`src/preload/index.ts`** —— 沿用现有 `window.todoAPI` 对象，新增 5 个 calendar 方法：
+  - `openCalendarWindow()` / `closeCalendarWindow()`
+  - `getMonthStats(year, month)`
+  - `getYearHeatmap(year)`
+  - `getDayTodos(date)`
 
 ### 托盘菜单
 
@@ -202,22 +206,22 @@ export interface CalendarTodo {
 
 ```ts
 // src/services/CalendarService.ts
-import Database from 'better-sqlite3';
+import { getDb } from '../database/connection';
 
 export class CalendarService {
-  constructor(private db: Database.Database) {}
-
   getMonthStats(year: number, month: number): MonthStat[] {
     // month: 1-12
-    // 返回当月所有日（含 count=0 的日），便于渲染月度日历占位
+    // 返回当月所有日（含 count=0 的日由调用方补，详见 CalendarMonth）
+    const db = getDb();
     const start = `${year}-${String(month).padStart(2, '0')}-01`;
     const end = month === 12
       ? `${year + 1}-01-01`
       : `${year}-${String(month + 1).padStart(2, '0')}-01`;
-    const rows = this.db.prepare(`
+    const rows = db.prepare(`
       SELECT date(completed_at, 'localtime') AS day, COUNT(*) AS count
       FROM todos
       WHERE is_completed = 1
+        AND completed_at IS NOT NULL
         AND completed_at >= ?
         AND completed_at < ?
       GROUP BY day
@@ -229,12 +233,14 @@ export class CalendarService {
   }
 
   getYearHeatmap(year: number): DayStat[] {
+    const db = getDb();
     const start = `${year}-01-01`;
     const end = `${year + 1}-01-01`;
-    const rows = this.db.prepare(`
+    const rows = db.prepare(`
       SELECT date(completed_at, 'localtime') AS day, COUNT(*) AS count
       FROM todos
       WHERE is_completed = 1
+        AND completed_at IS NOT NULL
         AND completed_at >= ?
         AND completed_at < ?
       GROUP BY day
@@ -244,10 +250,12 @@ export class CalendarService {
 
   getDayTodos(date: string): CalendarTodo[] {
     // date: 'YYYY-MM-DD'（本地时区）
-    const rows = this.db.prepare(`
+    const db = getDb();
+    const rows = db.prepare(`
       SELECT id, content, completed_at, parent_id
       FROM todos
       WHERE is_completed = 1
+        AND completed_at IS NOT NULL
         AND date(completed_at, 'localtime') = ?
       ORDER BY completed_at ASC
     `).all(date) as {
@@ -286,8 +294,8 @@ export function useCalendarData(year: number, month: number) {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      window.calendarAPI.getMonthStats(year, month),
-      window.calendarAPI.getYearHeatmap(year),
+      window.todoAPI.getMonthStats(year, month),
+      window.todoAPI.getYearHeatmap(year),
     ]).then(([m, h]) => {
       setMonthStats(m);
       setHeatmap(h);
@@ -297,7 +305,7 @@ export function useCalendarData(year: number, month: number) {
 
   const selectDay = (date: string) => {
     setSelectedDate(date);
-    window.calendarAPI.getDayTodos(date).then(setDayTodos);
+    window.todoAPI.getDayTodos(date).then(setDayTodos);
   };
 
   return {
