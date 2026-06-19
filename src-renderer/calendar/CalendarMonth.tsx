@@ -59,15 +59,16 @@ export function CalendarMonth({ year, month, stats, todayStr, selectedDate, onSe
         {cells.map((cell, i) => {
           if (cell.day === null) {
             return (
-              <div key={i} className="day-cell-slot" data-testid="day-cell-placeholder">
-                <div className="day-cell placeholder" data-testid="day-cell" />
+              <div key={i} className="day-cell-slot placeholder" data-testid="day-cell-placeholder">
+                <div className="day-cell" data-testid="day-cell" />
               </div>
             );
           }
           const count = stats.get(cell.day) ?? 0;
           const isToday = cell.dateStr === todayStr;
           const isSelected = cell.dateStr === selectedDate;
-          const classes = ['day-cell', colorClass(count), isToday && 'today', isSelected && 'selected']
+          const innerClasses = ['day-cell', colorClass(count)].join(' ');
+          const slotClasses = ['day-cell-slot', isToday && 'today', isSelected && 'selected']
             .filter(Boolean).join(' ');
 
           let outerTestId: string;
@@ -78,13 +79,26 @@ export function CalendarMonth({ year, month, stats, todayStr, selectedDate, onSe
           return (
             <div
               key={i}
-              className="day-cell-slot"
+              className={slotClasses}
               data-testid={outerTestId}
               onClick={() => onSelectDay(cell.dateStr!)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectDay(cell.dateStr!);
+                }
+              }}
               role="button"
               tabIndex={0}
+              aria-label={cell.dateStr!}
+              aria-pressed={isSelected || undefined}
+              aria-current={isToday ? 'date' : undefined}
             >
-              <div className={classes} data-testid="day-cell">
+              <div
+                className={innerClasses}
+                data-testid="day-cell"
+                title={count > 0 ? `${cell.dateStr} · ${count} 个待办` : cell.dateStr!}
+              >
                 <span className="day-number">{cell.day}</span>
                 {count > 0 && (
                   <span className="day-count" data-testid={`day-cell-count-${cell.day}`}>{count}</span>
