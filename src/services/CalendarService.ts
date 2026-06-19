@@ -99,6 +99,12 @@ export class CalendarService {
     // Over-fetch with a 1-day buffer on each side to catch timezone-boundary
     // cases (e.g. UTC '2026-06-14T16:00:00Z' can land on local '2026-06-15'
     // in UTC+8). JS-level filter to the exact local day.
+    //
+    // Ordering invariant: SQL `ORDER BY completed_at ASC` is followed by a
+    // JS localDay filter, but the final order is still correct: within a
+    // single query, all rows share the same TZ offset, so UTC ordering
+    // (lexicographic on Z-suffixed ISO) is preserved after local-day
+    // conversion. No post-filter re-sort needed.
     const dayStart = Date.parse(`${date}T00:00:00Z`);
     const prev = utcYmd(new Date(dayStart - 86_400_000));
     const next = utcYmd(new Date(dayStart + 86_400_000));

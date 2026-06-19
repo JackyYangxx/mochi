@@ -275,6 +275,10 @@ export class CalendarService {
 
 SQLite 的 `date()` 函数在 `localtime` modifier 下会使用系统本地时区。Windows 和 macOS 的 better-sqlite3 都默认支持 `localtime`，无需额外配置。DST 切换日会被正确归入本地日历日（已在测试中覆盖）。
 
+**实际实现偏离：** 测试环境使用 `tests/helpers/better-sqlite3-shim.mjs`（包装 `node:sqlite`），与真实 `better-sqlite3` 对 `'localtime'` 处理 naive ISO 时间戳的行为不一致 —— 测试需要 `TZ=UTC` 才能让 spec 的 SQL 通过，但开发环境在 `TZ=Asia/Singapore` 下 CI 会挂。生产代码侧 `TodoService.toggle()` 用 `new Date().toISOString()` 写 Z-suffixed 时间戳，又与 naive 不同。
+
+**采用 JS 层聚合：** `CalendarService` 用 `localDay()` 辅助函数同时处理 naive 和 Z-suffixed 时间戳，按本地日历日聚合在 JS 端。两种数据库引擎（`node:sqlite` 与 `better-sqlite3`）和两种时间戳格式（naive 与 Z-suffixed）下行为一致。代价是 SQL 多 fetch 一个 buffer 区间的行、JS 多做一次 Map 聚合；个人数据量下无性能影响。
+
 ---
 
 ## 6. 状态管理
