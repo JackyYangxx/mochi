@@ -118,11 +118,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('calendar:getDayTodos', (_event, date: string) =>
     calendarService.getDayTodos(date)
   );
-  ipcMain.handle('calendar:window:open', () => {
-    import('./calendarWindow').then((m) => m.openCalendarWindow());
+  ipcMain.handle('calendar:window:open', async () => {
+    const m = await import('./calendarWindow');
+    m.openCalendarWindow();
   });
-  ipcMain.handle('calendar:window:close', () => {
-    import('./calendarWindow').then((m) => m.closeCalendarWindow());
+  ipcMain.handle('calendar:window:close', async () => {
+    const m = await import('./calendarWindow');
+    m.closeCalendarWindow();
   });
 
   // Settings handlers
