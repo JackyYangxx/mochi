@@ -1,0 +1,111 @@
+.calendar-month {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.dow-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.dow-cell {
+  text-align: center;
+  font-size: 12px;
+  color: var(--cal-text-muted);
+  padding: 4px 0;
+}
+
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+
+.day-cell-slot {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease;
+  border-radius: 6px;
+}
+
+.day-cell-slot[data-testid="day-cell-placeholder"] {
+  cursor: default;
+  visibility: hidden;
+}
+
+.day-cell-slot:not([data-testid="day-cell-placeholder"]):hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.day-cell {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.day-cell.placeholder {
+  cursor: default;
+  visibility: hidden;
+}
+
+.day-cell.count-0 { background: var(--cal-cell-bg); }
+.day-cell.count-1 { background: var(--cal-cell-bg-1); }
+.day-cell.count-3 { background: var(--cal-cell-bg-3); color: white; }
+.day-cell.count-6 { background: var(--cal-cell-bg-6); color: white; }
+.day-cell.count-11 { background: var(--cal-cell-bg-11); color: white; }
+
+.day-cell-slot[data-testid="day-cell-today"] .day-cell,
+.day-cell.today {
+  box-shadow: 0 0 0 2px var(--cal-accent-soft);
+  font-weight: 600;
+}
+
+.day-cell-slot[data-testid="day-cell-selected"] .day-cell,
+.day-cell.selected {
+  box-shadow: 0 0 0 2px var(--cal-accent);
+}
+
+.day-number {
+  line-height: 1;
+}
+
+.day-count {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--cal-text);
+  border-radius: 8px;
+  padding: 0 6px;
+  font-size: 10px;
+  min-width: 14px;
+  text-align: center;
+  line-height: 14px;
+  font-weight: 600;
+}
+
+.day-cell.count-3 .day-count,
+.day-cell.count-6 .day-count,
+.day-cell.count-11 .day-count {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--cal-text);
+}
