@@ -352,7 +352,7 @@ export function useCalendarData(year: number, month: number) {
 - `src/main/tray.ts` —— 新增 "Calendar" 菜单项
 - `src/main/index.ts` —— 初始化 CalendarService、注册 IPC
 - `src/main/ipc.ts` —— 注册 5 个 calendar IPC handler
-- `src/preload/index.ts` —— 在 `window.calendarAPI` 暴露方法
+- `src/preload/index.ts` —— 在 `window.todoAPI` 新增 5 个 calendar 方法
 - `vite.config.ts` —— 增加 calendar entry；插件改名 `injectWindowAssets` 同时处理 settings + calendar
 - `package.json` —— version 1.0.32 → 1.0.33（releasing 时一并处理）
 
