@@ -1,0 +1,96 @@
+:root {
+  --cal-bg: #fdfbf7;
+  --cal-text: #333;
+  --cal-text-muted: #888;
+  --cal-border: #eee;
+  --cal-cell-bg: #f0f0f0;
+  --cal-cell-bg-1: #d8f0d4;
+  --cal-cell-bg-3: #a8dc9e;
+  --cal-cell-bg-6: #6cc060;
+  --cal-cell-bg-11: #3a9c2e;
+  --cal-accent: #6cc060;
+  --cal-accent-soft: rgba(108, 192, 96, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--cal-bg);
+  color: var(--cal-text);
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+}
+
+.calendar-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 16px;
+  gap: 12px;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calendar-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-nav button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--cal-border);
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.month-nav button:hover {
+  background: var(--cal-cell-bg-1);
+}
+
+.month-label {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.today-btn {
+  border: 1px solid var(--cal-accent);
+  background: white;
+  color: var(--cal-accent);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.today-btn:hover {
+  background: var(--cal-accent);
+  color: white;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--cal-text-muted);
+}
