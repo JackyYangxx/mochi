@@ -101,10 +101,10 @@ ${reportContent.summary}
       log.info('[DailyReport] Archived to:', archivePath);
     }
 
-    // Delete completed todos from database
+    // 取一份副本给 archive.md 用, DB 不动 (历史数据需要保留给日历视图)
     if (completedTodos.length > 0) {
       this.todoService.archiveCompletedByDate(today);
-      log.info('[DailyReport] Deleted completed todos from database');
+      log.info('[DailyReport] Fetched completed todos for archive.md (DB unchanged)');
     }
 
     return { success: true, reportPath };

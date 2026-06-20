@@ -56,9 +56,6 @@ export class ReminderService {
     const today = now.toISOString().slice(0, 10);
     const currentTime = now.toTimeString().slice(0, 5); // HH:MM
 
-    // Daily cleanup: always run once per day, independent of reminders
-    await this.checkDailyCleanup(today);
-
     // Get reminder times from settings
     let timesStr: string | null = null;
     try {
@@ -104,30 +101,6 @@ export class ReminderService {
       }
     } catch (err) {
       log.error('[Reminder] Failed to fire reminder:', err);
-    }
-  }
-
-  private async checkDailyCleanup(today: string): Promise<void> {
-    let lastCleanup: string | null = null;
-    try {
-      lastCleanup = this.settingsService.get('lastDailyCleanupDate');
-    } catch (err) {
-      log.warn('[Reminder] Failed to get lastDailyCleanupDate:', err);
-      return;
-    }
-    if (lastCleanup === today) return;
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { TodoService } = require('./TodoService');
-      const service = new TodoService();
-      const count = service.clearAllCompleted();
-      if (count > 0) {
-        log.info(`[Reminder] Daily cleanup: cleared ${count} completed todos`);
-      }
-      this.settingsService.set('lastDailyCleanupDate', today);
-    } catch (err) {
-      log.error('[Reminder] Daily cleanup failed:', err);
     }
   }
 

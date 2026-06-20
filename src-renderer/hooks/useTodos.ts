@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useStore } from '../store';
+import { filterTodosForForeground } from '../data/todoFilters';
 
 declare global {
   interface Window {
@@ -127,7 +128,7 @@ export function useTodos() {
 
   const filteredTodos = searchQuery
     ? todos.filter((t) => t.content.toLowerCase().includes(searchQuery.toLowerCase()))
-    : todos;
+    : filterTodosForForeground(todos);
 
   return {
     todos: filteredTodos,

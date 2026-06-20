@@ -79,12 +79,6 @@ export class TodoService {
     return rows.map(rowToTodo);
   }
 
-  clearAllCompleted(): number {
-    const db = getDb();
-    const result = db.prepare('DELETE FROM todos WHERE is_completed = 1').run();
-    return result.changes;
-  }
-
   toggle(id: string): Todo {
     const db = getDb();
     const row = db.prepare('SELECT * FROM todos WHERE id = ?').get(id) as TodoRow | undefined;
@@ -173,6 +167,10 @@ export class TodoService {
     return rows.map(rowToTodo);
   }
 
+  // 取出指定日期"创建"的已完成项, 用于写日报 / archive.md。
+  // **不再删表**: 前台靠 [[filterTodosForForeground]] 软过滤, 日历视图也
+  // 需要读历史完成项, DB 必须保留。命名沿用 archive 是因为它服务于
+  // "归档到 markdown" 这件事, 不是"删 DB"。
   archiveCompletedByDate(date: string): Todo[] {
     const db = getDb();
     const startOfDay = `${date}T00:00:00`;
@@ -180,14 +178,9 @@ export class TodoService {
     nextDateObj.setDate(nextDateObj.getDate() + 1);
     const nextDayStr = nextDateObj.toISOString().slice(0, 10);
     const endOfDay = `${nextDayStr}T00:00:00`;
-    const transaction = db.transaction(() => {
-      const rows = db
-        .prepare('SELECT * FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at < ?')
-        .all(startOfDay, endOfDay) as TodoRow[];
-      db.prepare('DELETE FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at < ?')
-        .run(startOfDay, endOfDay);
-      return rows.map(rowToTodo);
-    });
-    return transaction();
+    const rows = db
+      .prepare('SELECT * FROM todos WHERE is_completed = 1 AND created_at >= ? AND created_at < ?')
+      .all(startOfDay, endOfDay) as TodoRow[];
+    return rows.map(rowToTodo);
   }
 }

@@ -278,4 +278,39 @@ describe('TodoService', () => {
       expect(mockRun).toHaveBeenCalledTimes(3);
     });
   });
+
+  describe('archiveCompletedByDate', () => {
+    it('returns completed todos created on the given date', () => {
+      mockAll.mockReturnValue([
+        {
+          id: '1',
+          content: 'Yesterday done',
+          sort_order: 0,
+          created_at: '2026-06-20T10:00:00.000Z',
+          updated_at: '2026-06-20T10:00:00.000Z',
+          completed_at: '2026-06-20T18:00:00.000Z',
+          is_completed: 1,
+        },
+      ]);
+      const service = new TodoService(mockDb as any);
+      const result = service.archiveCompletedByDate('2026-06-20');
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toBe('Yesterday done');
+    });
+
+    it('does NOT delete from the database (regression: 前台过滤语义, DB 必须保留)', () => {
+      // 收集所有被 prepare 过的 SQL, 确保没有 DELETE
+      const preparedStmts: string[] = [];
+      mockPrepare.mockImplementation((sql: string) => {
+        preparedStmts.push(sql);
+        return { all: mockAll, get: mockGet, run: mockRun };
+      });
+      mockAll.mockReturnValue([]);
+
+      const service = new TodoService(mockDb as any);
+      service.archiveCompletedByDate('2026-06-20');
+
+      expect(preparedStmts.some((s) => /\bDELETE\b/i.test(s))).toBe(false);
+    });
+  });
 });
