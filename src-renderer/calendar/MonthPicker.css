@@ -1,6 +1,6 @@
 .month-picker {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
   padding: 8px;
   background: white;
@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 10px 4px;
+  padding: 12px 4px;
   border-radius: 6px;
   font-size: 12px;
   text-align: center;
@@ -23,6 +23,7 @@
   user-select: none;
   transition: transform 0.1s ease;
   background: var(--cal-cell-bg);
+  white-space: nowrap;
 }
 
 .month-cell:hover {
