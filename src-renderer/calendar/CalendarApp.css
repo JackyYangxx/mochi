@@ -47,13 +47,13 @@ html, body, #root {
   font-weight: 600;
 }
 
-.month-nav {
+.year-nav {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.month-nav button {
+.year-nav button {
   width: 28px;
   height: 28px;
   border: 1px solid var(--cal-border);
@@ -64,14 +64,8 @@ html, body, #root {
   line-height: 1;
 }
 
-.month-nav button:hover {
+.year-nav button:hover {
   background: var(--cal-cell-bg-1);
-}
-
-.month-label {
-  min-width: 36px;
-  text-align: center;
-  font-weight: 500;
 }
 
 .today-btn {

@@ -43,6 +43,11 @@ const api = {
   updateTodoNotes: (id: string, notes: string) => ipcRenderer.invoke('todos:updateNotes', id, notes),
   deleteTodo: (id: string) => ipcRenderer.invoke('todos:delete', id),
   updateSortOrder: (ids: string[]) => ipcRenderer.invoke('todos:updateSortOrder', ids),
+  onTodosChanged: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('todos:changed', listener);
+    return () => ipcRenderer.removeListener('todos:changed', listener);
+  },
 
   // Daily Report
   generateDailyReport: () => ipcRenderer.invoke('dailyReport:generate'),

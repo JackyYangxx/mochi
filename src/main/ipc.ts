@@ -45,6 +45,16 @@ let roleService: RoleService;
 export function setKbService(svc: KnowledgeBaseService): void {
   kbService = svc;
 }
+
+// Broadcast a `todos:changed` event to every live window so views that
+// derive state from todos (e.g. the calendar's heatmap) can refresh.
+function broadcastTodosChanged(): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('todos:changed');
+    }
+  }
+}
 export function setRoleService(svc: RoleService): void {
   roleService = svc;
 }
@@ -100,13 +110,37 @@ export function registerIpcHandlers(): void {
 
   // Todo handlers
   ipcMain.handle('todos:getAll', () => todoService.getAll());
-  ipcMain.handle('todos:add', (_event, input: { content: string; parentId?: string }) => todoService.add(input));
-  ipcMain.handle('todos:toggle', (_event, id: string) => todoService.toggle(id));
-  ipcMain.handle('todos:delete', (_event, id: string) => todoService.delete(id));
-  ipcMain.handle('todos:update', (_event, id: string, content: string) => todoService.update(id, content));
-  ipcMain.handle('todos:updateNotes', (_event, id: string, notes: string) => todoService.updateNotes(id, notes));
+  ipcMain.handle('todos:add', (_event, input: { content: string; parentId?: string }) => {
+    const result = todoService.add(input);
+    broadcastTodosChanged();
+    return result;
+  });
+  ipcMain.handle('todos:toggle', (_event, id: string) => {
+    const result = todoService.toggle(id);
+    broadcastTodosChanged();
+    return result;
+  });
+  ipcMain.handle('todos:delete', (_event, id: string) => {
+    const result = todoService.delete(id);
+    broadcastTodosChanged();
+    return result;
+  });
+  ipcMain.handle('todos:update', (_event, id: string, content: string) => {
+    const result = todoService.update(id, content);
+    broadcastTodosChanged();
+    return result;
+  });
+  ipcMain.handle('todos:updateNotes', (_event, id: string, notes: string) => {
+    const result = todoService.updateNotes(id, notes);
+    broadcastTodosChanged();
+    return result;
+  });
   ipcMain.handle('todos:search', (_event, query: string) => todoService.search(query));
-  ipcMain.handle('todos:updateSortOrder', (_event, ids: string[]) => todoService.updateSortOrder(ids));
+  ipcMain.handle('todos:updateSortOrder', (_event, ids: string[]) => {
+    const result = todoService.updateSortOrder(ids);
+    broadcastTodosChanged();
+    return result;
+  });
 
   // Calendar handlers
   const calendarService = new CalendarService();
@@ -247,6 +281,7 @@ export function registerIpcHandlers(): void {
       const result = todoService.add({ content: todo.content });
       added.push(result.id);
     }
+    broadcastTodosChanged();
     return { success: true, count: added.length };
   });
 
