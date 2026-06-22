@@ -23,17 +23,18 @@ function setupDb(): Database.Database {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       completed_at DATETIME,
       is_completed INTEGER DEFAULT 0,
-      parent_id TEXT DEFAULT NULL
+      parent_id TEXT DEFAULT NULL,
+      notes TEXT DEFAULT NULL
     );
   `);
   return db;
 }
 
-function insertCompleted(db: Database.Database, id: string, completedAt: string, content = 'task', parentId: string | null = null): void {
+function insertCompleted(db: Database.Database, id: string, completedAt: string, content = 'task', parentId: string | null = null, notes: string | null = null): void {
   db.prepare(
-    `INSERT INTO todos (id, content, sort_order, created_at, updated_at, completed_at, is_completed, parent_id)
-     VALUES (?, ?, 0, ?, ?, ?, 1, ?)`
-  ).run(id, content, completedAt, completedAt, completedAt, parentId);
+    `INSERT INTO todos (id, content, sort_order, created_at, updated_at, completed_at, is_completed, parent_id, notes)
+     VALUES (?, ?, 0, ?, ?, ?, 1, ?, ?)`
+  ).run(id, content, completedAt, completedAt, completedAt, parentId, notes);
 }
 
 describe('CalendarService', () => {
@@ -145,6 +146,15 @@ describe('CalendarService', () => {
       const todos = svc.getDayTodos('2026-06-15');
       expect(todos).toHaveLength(2);
       expect(todos.find(t => t.id === 'c')?.parentId).toBe('p');
+    });
+
+    it('returns notes for each todo (null when unset, string when set)', () => {
+      insertCompleted(db, 'a', '2026-06-15T09:00:00', 'no-notes');
+      insertCompleted(db, 'b', '2026-06-15T10:00:00', 'has-notes', null, '这是今天的总结');
+
+      const todos = svc.getDayTodos('2026-06-15');
+      expect(todos.find(t => t.id === 'a')?.notes).toBeNull();
+      expect(todos.find(t => t.id === 'b')?.notes).toBe('这是今天的总结');
     });
   });
 });

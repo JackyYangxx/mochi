@@ -37,8 +37,13 @@ export function DayDetailPanel({ date, todos, onClose }: Props) {
               key={t.id}
               className={t.parentId ? 'todo-item subtask' : 'todo-item'}
             >
-              <span className="todo-content">{t.content}</span>
-              <span className="todo-time">{formatHHmm(t.completedAt)}</span>
+              <div className="todo-line">
+                <span className="todo-content">{t.content}</span>
+                <span className="todo-time">{formatHHmm(t.completedAt)}</span>
+              </div>
+              {t.notes && (
+                <div className="todo-notes" data-testid="todo-notes">{t.notes}</div>
+              )}
             </li>
           ))}
         </ul>

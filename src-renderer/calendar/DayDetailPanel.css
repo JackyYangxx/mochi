@@ -69,10 +69,9 @@
 
 .todo-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 4px;
   padding: 8px 16px;
-  gap: 8px;
 }
 
 .todo-item.subtask {
@@ -85,6 +84,13 @@
   border-bottom: 1px solid var(--cal-border);
 }
 
+.todo-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .todo-content {
   flex: 1;
   word-break: break-word;
@@ -94,4 +100,12 @@
   font-size: 11px;
   color: var(--cal-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+.todo-notes {
+  font-size: 11px;
+  color: var(--cal-text-muted);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
 }

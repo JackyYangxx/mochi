@@ -4,9 +4,9 @@ import { DayDetailPanel } from '../../src-renderer/calendar/DayDetailPanel';
 import type { CalendarTodo } from '../../src/shared/types/calendar';
 
 const SAMPLE_TODOS: CalendarTodo[] = [
-  { id: '1', content: 'morning task', completedAt: '2026-06-15T09:00:00', parentId: null },
-  { id: '2', content: 'afternoon task', completedAt: '2026-06-15T14:30:00', parentId: null },
-  { id: '3', content: 'child of 1', completedAt: '2026-06-15T10:00:00', parentId: '1' },
+  { id: '1', content: 'morning task', completedAt: '2026-06-15T09:00:00', parentId: null, notes: null },
+  { id: '2', content: 'afternoon task', completedAt: '2026-06-15T14:30:00', parentId: null, notes: '下午三点开完会, 任务闭环' },
+  { id: '3', content: 'child of 1', completedAt: '2026-06-15T10:00:00', parentId: '1', notes: '细分子项' },
 ];
 
 describe('DayDetailPanel', () => {
@@ -42,5 +42,15 @@ describe('DayDetailPanel', () => {
     );
     fireEvent.click(screen.getByTestId('panel-close'));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('renders notes per todo when present, hides when null', () => {
+    render(
+      <DayDetailPanel date="2026-06-15" todos={SAMPLE_TODOS} onClose={vi.fn()} />
+    );
+    const notesEls = screen.getAllByTestId('todo-notes');
+    expect(notesEls).toHaveLength(2);
+    expect(notesEls[0].textContent).toBe('下午三点开完会, 任务闭环');
+    expect(notesEls[1].textContent).toBe('细分子项');
   });
 });

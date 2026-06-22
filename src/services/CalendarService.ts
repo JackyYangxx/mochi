@@ -10,6 +10,7 @@ interface TodoRow {
   content: string;
   completed_at: string;
   parent_id: string | null;
+  notes: string | null;
 }
 
 const TZ_SUFFIX_RE = /Z|[+-]\d{2}:?\d{2}$/;
@@ -109,7 +110,7 @@ export class CalendarService {
     const prev = utcYmd(new Date(dayStart - 86_400_000));
     const next = utcYmd(new Date(dayStart + 86_400_000));
     const rows = db.prepare(`
-      SELECT id, content, completed_at, parent_id
+      SELECT id, content, completed_at, parent_id, notes
       FROM todos
       WHERE is_completed = 1
         AND completed_at IS NOT NULL
@@ -124,6 +125,7 @@ export class CalendarService {
         content: r.content,
         completedAt: r.completed_at,
         parentId: r.parent_id,
+        notes: r.notes,
       }));
   }
 }

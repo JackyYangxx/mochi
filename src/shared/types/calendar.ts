@@ -13,4 +13,5 @@ export interface CalendarTodo {
   content: string;
   completedAt: string;
   parentId: string | null;
+  notes: string | null;
 }
