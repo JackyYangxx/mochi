@@ -1,4 +1,5 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useReducer } from 'react';
+import { flushSync } from 'react-dom';
 import { useStore } from '../store';
 import { filterTodosForForeground } from '../data/todoFilters';
 
@@ -30,6 +31,13 @@ declare global {
 export function useTodos() {
   const { todos, searchQuery, setTodos, addTodo, toggleTodo, deleteTodo, updateTodo, updateTodoNotes, setShowInput } = useStore();
   const [isLoading, setIsLoading] = useState(false);
+  // 驱动 filterTodosForForeground 重算: 跨过本地零点后, "昨天完成的"应当从
+  // 前台消失, 但 store 里的 todos 没变, 不主动重渲染就一直是旧 cutoff。
+  // 每分钟 + 窗口 focus 时各刷一次。
+  // 用 useReducer + flushSync: forceTick 只触发重渲染, 真正的时间戳每次 render 时
+  // 现场读 (避免 stale state 把 cutoff 锁在旧值), flushSync 强制同步 re-render —
+  // 同步事件回调 (focus) 中 React 不会自动 flush update, 必须 flushSync。
+  const [, forceTick] = useReducer((x: number) => x + 1, 0);
 
   const loadTodos = useCallback(async () => {
     if (!window.todoAPI) {
@@ -61,6 +69,18 @@ export function useTodos() {
     });
     return cleanup;
   }, [setShowInput]);
+
+  useEffect(() => {
+    const tick = () => {
+      flushSync(() => forceTick());
+    };
+    const id = setInterval(tick, 60_000);
+    window.addEventListener('focus', tick);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', tick);
+    };
+  }, []);
 
   const handleAdd = async (content: string) => {
     if (!window.todoAPI) {
@@ -128,7 +148,7 @@ export function useTodos() {
 
   const filteredTodos = searchQuery
     ? todos.filter((t) => t.content.toLowerCase().includes(searchQuery.toLowerCase()))
-    : filterTodosForForeground(todos);
+    : filterTodosForForeground(todos, new Date());
 
   return {
     todos: filteredTodos,
